@@ -1,0 +1,23 @@
+{
+  "name": "Digital Immortal - 数字永生",
+  "short_name": "Digital Immortal",
+  "description": "创建你的数字分身，让另一个你与世界对话",
+  "start_url": "/digital-immortal/",
+  "scope": "/digital-immortal/",
+  "display": "standalone",
+  "background_color": "#0f0a1e",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/digital-immortal/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/digital-immortal/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
