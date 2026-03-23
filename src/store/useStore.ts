@@ -59,6 +59,11 @@ export interface MemoryNode {
   connections: string[]
   x?: number
   y?: number
+  // Enhanced fields
+  timestamp?: string
+  isCore?: boolean
+  emotionTags?: string[]
+  relatedDialogs?: string[]
 }
 
 export interface TimeCapsule {
@@ -68,6 +73,7 @@ export interface TimeCapsule {
   content: string
   createdAt: string
   status: 'pending' | 'delivered'
+  type?: 'letter' | 'voice' | 'photo' | 'video'
 }
 
 interface AppState {
@@ -116,24 +122,7 @@ export const useStore = create<AppState>()(
           friends: s.friends.map((f) => (f.id === id ? { ...f, permissionLevel: level } : f)),
         })),
 
-      capsules: [
-        {
-          id: 'c1',
-          recipient: '女儿小雨',
-          deliveryDate: '2027-01-01',
-          content: '小雨，当你看到这条消息的时候，你已经18岁了。爸爸想告诉你，无论你选择什么样的人生道路，爸爸都支持你。记住，做真实的自己比任何事都重要。',
-          createdAt: '2026-03-15',
-          status: 'pending',
-        },
-        {
-          id: 'c2',
-          recipient: '未来的自己',
-          deliveryDate: '2027-03-20',
-          content: '一年后的自己，还记得今天立下的目标吗？希望你已经完成了那个项目，也希望你没有忘记生活中真正重要的事情。',
-          createdAt: '2026-03-20',
-          status: 'pending',
-        },
-      ],
+      capsules: [],
       addCapsule: (capsule) => set((s) => ({ capsules: [...s.capsules, capsule] })),
       removeCapsule: (id) => set((s) => ({ capsules: s.capsules.filter((c) => c.id !== id) })),
 

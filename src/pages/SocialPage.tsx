@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Shield, MessageSquare, BarChart3, ChevronRight, Clock } from 'lucide-react'
+import { Users, Shield, MessageSquare, BarChart3, ChevronRight, Clock, Activity, Heart, MessageCircle, Zap, Star } from 'lucide-react'
 import { useStore, type Friend } from '../store/useStore'
-import { socialLogs, weeklyReport } from '../data/mockData'
+import { socialLogs, weeklyReport, avatarConversations, socialFeed, friendDetails } from '../data/mockData'
 import { NebulaAvatar } from '../components/NebulaAvatar'
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line } from 'recharts'
 
@@ -13,7 +13,27 @@ const permissionLabels: Record<number, { label: string; desc: string; color: str
   3: { label: 'Level 3', desc: '完全自主', color: 'text-primary-400' },
 }
 
-type Tab = 'friends' | 'logs' | 'report'
+const frequencyLabels: Record<string, { label: string; color: string }> = {
+  high: { label: '频繁互动', color: 'text-green-400' },
+  medium: { label: '一般互动', color: 'text-yellow-400' },
+  low: { label: '偶尔互动', color: 'text-gray-400' },
+}
+
+const moodColors: Record<string, string> = {
+  friendly: 'border-green-500/30 bg-green-500/5',
+  deep: 'border-purple-500/30 bg-purple-500/5',
+  fun: 'border-yellow-500/30 bg-yellow-500/5',
+  warm: 'border-orange-500/30 bg-orange-500/5',
+}
+
+const moodLabels: Record<string, string> = {
+  friendly: '友善',
+  deep: '深度',
+  fun: '欢乐',
+  warm: '温暖',
+}
+
+type Tab = 'friends' | 'logs' | 'feed' | 'avatarChat' | 'report'
 
 export function SocialPage() {
   const { profile, friends, updateFriendPermission, setCurrentPage } = useStore()
@@ -35,6 +55,17 @@ export function SocialPage() {
 
   const statusColors = { online: 'bg-green-400', offline: 'bg-gray-500', busy: 'bg-yellow-400' }
 
+  function getFriendDetail(friendId: string) {
+    return friendDetails.find((d) => d.friendId === friendId)
+  }
+
+  const feedIcons: Record<string, typeof MessageCircle> = {
+    reply: MessageSquare,
+    avatar_chat: MessageCircle,
+    milestone: Zap,
+    memory: Star,
+  }
+
   return (
     <div className="min-h-screen pt-16 md:pt-14 pb-20 md:pb-8 px-4">
       <div className="max-w-3xl mx-auto">
@@ -43,25 +74,27 @@ export function SocialPage() {
           <NebulaAvatar size={40} animate={false} />
           <div>
             <h1 className="text-xl font-bold text-primary-100">社交控制台</h1>
-            <p className="text-xs text-gray-400">今日已代回复 {weeklyReport.totalReplies} 条</p>
+            <p className="text-xs text-gray-400">今日已代回复 {weeklyReport.totalReplies} 条 · {friends.length} 位好友</p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-surface-100/50 rounded-xl p-1 mb-6">
+        <div className="flex gap-1 bg-surface-100/50 rounded-xl p-1 mb-6 overflow-x-auto">
           {[
-            { id: 'friends' as Tab, label: '好友列表', icon: Users },
-            { id: 'logs' as Tab, label: '社交记录', icon: MessageSquare },
+            { id: 'friends' as Tab, label: '好友', icon: Users },
+            { id: 'feed' as Tab, label: '动态', icon: Activity },
+            { id: 'avatarChat' as Tab, label: '分身对话', icon: MessageCircle },
+            { id: 'logs' as Tab, label: '记录', icon: MessageSquare },
             { id: 'report' as Tab, label: '周报', icon: BarChart3 },
           ].map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm transition-all cursor-pointer ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap ${
                 tab === t.id ? 'bg-primary-600/30 text-primary-200' : 'text-gray-400 hover:text-primary-300'
               }`}
             >
-              <t.icon size={16} />
+              <t.icon size={14} />
               {t.label}
             </button>
           ))}
@@ -72,84 +105,205 @@ export function SocialPage() {
           {tab === 'friends' && (
             <motion.div key="friends" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="space-y-3">
-                {friends.map((f) => (
-                  <motion.div
-                    key={f.id}
-                    layout
-                    className="bg-surface-100/50 border border-primary-900/30 rounded-xl p-4 hover:border-primary-700/40 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-sm">
-                            {f.avatar}
+                {friends.map((f) => {
+                  const detail = getFriendDetail(f.id)
+                  return (
+                    <motion.div
+                      key={f.id}
+                      layout
+                      className="bg-surface-100/50 border border-primary-900/30 rounded-xl p-4 hover:border-primary-700/40 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-sm">
+                              {f.avatar}
+                            </div>
+                            <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface-50 ${statusColors[f.status]}`} />
                           </div>
-                          <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-surface-50 ${statusColors[f.status]}`} />
+                          <div>
+                            <div className="text-primary-100 font-medium text-sm">{f.name}</div>
+                            <div className="text-xs text-gray-500 flex items-center gap-1">
+                              <Clock size={10} />
+                              {f.lastActive}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-primary-100 font-medium text-sm">{f.name}</div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <Clock size={10} />
-                            {f.lastActive}
+                        <button
+                          onClick={() => setSelectedFriend(selectedFriend?.id === f.id ? null : f)}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <span className={`text-xs ${permissionLabels[f.permissionLevel].color}`}>
+                            {permissionLabels[f.permissionLevel].label}
+                          </span>
+                          <ChevronRight
+                            size={16}
+                            className={`text-gray-500 transition-transform ${selectedFriend?.id === f.id ? 'rotate-90' : ''}`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Enhanced friend info */}
+                      {detail && (
+                        <div className="mt-3 space-y-2">
+                          {/* Intimacy bar */}
+                          <div className="flex items-center gap-2">
+                            <Heart size={12} className="text-pink-400 shrink-0" />
+                            <div className="flex-1 h-1.5 bg-surface-200/50 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-pink-500 to-pink-400 rounded-full transition-all"
+                                style={{ width: `${detail.intimacyScore}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-pink-400 w-8 text-right">{detail.intimacyScore}%</span>
+                          </div>
+
+                          {/* Recent topics and frequency */}
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className={frequencyLabels[detail.interactionFrequency].color}>
+                              {frequencyLabels[detail.interactionFrequency].label}
+                            </span>
+                            <span className="text-gray-500">{detail.lastInteractionSummary}</span>
+                          </div>
+
+                          {/* Topic tags */}
+                          <div className="flex flex-wrap gap-1">
+                            {detail.recentTopics.slice(0, 4).map((topic, i) => (
+                              <span key={i} className="text-[10px] bg-primary-900/20 text-primary-400 px-2 py-0.5 rounded">
+                                {topic}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Permission details */}
+                      <AnimatePresence>
+                        {selectedFriend?.id === f.id && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-4 pt-4 border-t border-primary-900/20">
+                              <div className="text-xs text-gray-400 mb-3 flex items-center gap-1">
+                                <Shield size={12} />
+                                代回复权限设置
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                {[0, 1, 2, 3].map((level) => (
+                                  <button
+                                    key={level}
+                                    onClick={() => updateFriendPermission(f.id, level as 0 | 1 | 2 | 3)}
+                                    className={`px-3 py-2 rounded-lg text-xs text-left transition-all cursor-pointer ${
+                                      f.permissionLevel === level
+                                        ? 'bg-primary-600/30 border border-primary-500/50'
+                                        : 'bg-surface-200/50 border border-transparent hover:border-primary-900/30'
+                                    }`}
+                                  >
+                                    <div className={permissionLabels[level].color}>
+                                      {permissionLabels[level].label}
+                                    </div>
+                                    <div className="text-gray-400 text-[10px] mt-0.5">
+                                      {permissionLabels[level].desc}
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-3">
+                                已代回复 {f.replyCount} 条消息
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Social Feed */}
+          {tab === 'feed' && (
+            <motion.div key="feed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="space-y-3">
+                {socialFeed.map((item) => {
+                  const IconComp = feedIcons[item.type] || MessageSquare
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-surface-100/50 border border-primary-900/30 rounded-xl p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          item.type === 'milestone' ? 'bg-warm-500/20' : 'bg-primary-600/20'
+                        }`}>
+                          <IconComp size={16} className={item.type === 'milestone' ? 'text-warm-400' : 'text-primary-400'} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-300 leading-relaxed">{item.content}</p>
+                          <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500">
+                            <span>{item.timestamp}</span>
+                            {item.friendName && <span className="text-primary-400">@{item.friendName}</span>}
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setSelectedFriend(selectedFriend?.id === f.id ? null : f)}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <span className={`text-xs ${permissionLabels[f.permissionLevel].color}`}>
-                          {permissionLabels[f.permissionLevel].label}
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Avatar-to-Avatar Conversations */}
+          {tab === 'avatarChat' && (
+            <motion.div key="avatarChat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="mb-4">
+                <p className="text-xs text-gray-400">你的分身和好友的分身的精彩对话摘要</p>
+              </div>
+              <div className="space-y-4">
+                {avatarConversations.map((conv) => (
+                  <div key={conv.id} className={`border rounded-2xl p-5 ${moodColors[conv.mood]}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-[10px] font-bold border-2 border-surface-50 z-10">
+                            我
+                          </div>
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-warm-400 to-warm-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-surface-50">
+                            {conv.friend2[0]}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-primary-200 font-medium">{conv.friend1} & {conv.friend2}</div>
+                          <div className="text-[10px] text-gray-500">{conv.topic}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                          conv.mood === 'deep' ? 'bg-purple-500/20 text-purple-300' :
+                          conv.mood === 'fun' ? 'bg-yellow-500/20 text-yellow-300' :
+                          conv.mood === 'warm' ? 'bg-orange-500/20 text-orange-300' :
+                          'bg-green-500/20 text-green-300'
+                        }`}>
+                          {moodLabels[conv.mood]}
                         </span>
-                        <ChevronRight
-                          size={16}
-                          className={`text-gray-500 transition-transform ${selectedFriend?.id === f.id ? 'rotate-90' : ''}`}
-                        />
-                      </button>
+                        <span className="text-[10px] text-gray-500">{conv.timestamp.split(' ')[1]}</span>
+                      </div>
                     </div>
 
-                    {/* Permission details */}
-                    <AnimatePresence>
-                      {selectedFriend?.id === f.id && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="mt-4 pt-4 border-t border-primary-900/20">
-                            <div className="text-xs text-gray-400 mb-3 flex items-center gap-1">
-                              <Shield size={12} />
-                              代回复权限设置
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              {[0, 1, 2, 3].map((level) => (
-                                <button
-                                  key={level}
-                                  onClick={() => updateFriendPermission(f.id, level as 0 | 1 | 2 | 3)}
-                                  className={`px-3 py-2 rounded-lg text-xs text-left transition-all cursor-pointer ${
-                                    f.permissionLevel === level
-                                      ? 'bg-primary-600/30 border border-primary-500/50'
-                                      : 'bg-surface-200/50 border border-transparent hover:border-primary-900/30'
-                                  }`}
-                                >
-                                  <div className={permissionLabels[level].color}>
-                                    {permissionLabels[level].label}
-                                  </div>
-                                  <div className="text-gray-400 text-[10px] mt-0.5">
-                                    {permissionLabels[level].desc}
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-3">
-                              已代回复 {f.replyCount} 条消息
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
+                    <div className="space-y-2">
+                      {conv.preview.map((line, i) => (
+                        <div key={i} className="text-xs text-gray-300 leading-relaxed pl-3 border-l-2 border-primary-900/30">
+                          {line}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </motion.div>

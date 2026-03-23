@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Brain, X, Search } from 'lucide-react'
+import { Brain, X, Search, Filter, Clock, Tag } from 'lucide-react'
 import { memoryNodes } from '../data/mockData'
 import type { MemoryNode } from '../store/useStore'
 import { useStore } from '../store/useStore'
@@ -34,9 +34,29 @@ export function MemoryPage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [selectedNode, setSelectedNode] = useState<MemoryNode | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState<string | null>(null)
+  const [filterTime, setFilterTime] = useState<string | null>(null)
   const [nodes, setNodes] = useState<SimNode[]>([])
   const animRef = useRef<number>(0)
   const nodesRef = useRef<SimNode[]>([])
+
+  // Filter nodes
+  const filteredNodes = memoryNodes.filter((n) => {
+    if (filterType && n.type !== filterType) return false
+    if (filterTime === 'core' && !n.isCore) return false
+    if (filterTime === 'recent' && n.timestamp) {
+      const year = parseInt(n.timestamp.split('-')[0])
+      if (year < 2024) return false
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      return n.label.toLowerCase().includes(q) || n.content.toLowerCase().includes(q) ||
+        (n.emotionTags && n.emotionTags.some(t => t.includes(q)))
+    }
+    return true
+  })
+
+  const filteredIds = new Set(filteredNodes.map((n) => n.id))
 
   // Initialize nodes with positions
   useEffect(() => {
@@ -47,7 +67,7 @@ export function MemoryPage() {
 
     const simNodes: SimNode[] = memoryNodes.map((n, i) => {
       const angle = (i / memoryNodes.length) * Math.PI * 2
-      const radius = 120 + Math.random() * 80
+      const radius = 100 + Math.random() * 100
       return {
         ...n,
         x: centerX + Math.cos(angle) * radius,
@@ -69,43 +89,38 @@ export function MemoryPage() {
     const ns = nodesRef.current
 
     for (const node of ns) {
-      // Center gravity
       node.vx += (centerX - node.x) * 0.001
       node.vy += (centerY - node.y) * 0.001
 
-      // Repulsion between nodes
       for (const other of ns) {
         if (node.id === other.id) continue
         const dx = node.x - other.x
         const dy = node.y - other.y
         const dist = Math.sqrt(dx * dx + dy * dy) || 1
-        if (dist < 100) {
-          const force = (100 - dist) * 0.02
+        if (dist < 80) {
+          const force = (80 - dist) * 0.025
           node.vx += (dx / dist) * force
           node.vy += (dy / dist) * force
         }
       }
 
-      // Attraction along edges
       for (const connId of node.connections) {
         const other = ns.find((n) => n.id === connId)
         if (!other) continue
         const dx = other.x - node.x
         const dy = other.y - node.y
         const dist = Math.sqrt(dx * dx + dy * dy) || 1
-        if (dist > 80) {
+        if (dist > 70) {
           node.vx += dx * 0.003
           node.vy += dy * 0.003
         }
       }
 
-      // Damping
       node.vx *= 0.9
       node.vy *= 0.9
       node.x += node.vx
       node.y += node.vy
 
-      // Bounds
       node.x = Math.max(30, Math.min(w - 30, node.x))
       node.y = Math.max(30, Math.min(h - 30, node.y))
     }
@@ -146,17 +161,15 @@ export function MemoryPage() {
 
     ctx.clearRect(0, 0, w, h)
 
-    const filteredIds = searchQuery
-      ? memoryNodes.filter((n) => n.label.includes(searchQuery) || n.content.includes(searchQuery)).map((n) => n.id)
-      : null
+    const hasFilter = searchQuery || filterType || filterTime
 
     // Draw edges
     for (const node of nodes) {
       for (const connId of node.connections) {
         const other = nodes.find((n) => n.id === connId)
         if (!other) continue
-        const isHighlighted = !filteredIds || (filteredIds.includes(node.id) && filteredIds.includes(other.id))
-        ctx.strokeStyle = isHighlighted ? 'rgba(139,92,246,0.25)' : 'rgba(139,92,246,0.06)'
+        const bothHighlighted = !hasFilter || (filteredIds.has(node.id) && filteredIds.has(other.id))
+        ctx.strokeStyle = bothHighlighted ? 'rgba(139,92,246,0.25)' : 'rgba(139,92,246,0.04)'
         ctx.lineWidth = 1
         ctx.beginPath()
         ctx.moveTo(node.x, node.y)
@@ -167,12 +180,12 @@ export function MemoryPage() {
 
     // Draw nodes
     for (const node of nodes) {
-      const isHighlighted = !filteredIds || filteredIds.includes(node.id)
+      const isHighlighted = !hasFilter || filteredIds.has(node.id)
       const isSelected = selectedNode?.id === node.id
-      const size = 8 + node.importance * 14
-      const alpha = isHighlighted ? 1 : 0.2
+      const baseSize = 6 + node.importance * 12
+      const size = node.isCore ? baseSize + 2 : baseSize
+      const alpha = isHighlighted ? 1 : 0.15
 
-      // Glow
       if (isSelected || (isHighlighted && node.importance > 0.7)) {
         ctx.shadowColor = typeColors[node.type]
         ctx.shadowBlur = 15
@@ -184,8 +197,18 @@ export function MemoryPage() {
       ctx.arc(node.x, node.y, size, 0, Math.PI * 2)
       ctx.fill()
 
-      // Inner glow
+      // Core memory ring
+      if (node.isCore && isHighlighted) {
+        ctx.strokeStyle = typeColors[node.type]
+        ctx.lineWidth = 1.5
+        ctx.globalAlpha = alpha * 0.5
+        ctx.beginPath()
+        ctx.arc(node.x, node.y, size + 4, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+
       ctx.fillStyle = 'rgba(255,255,255,0.3)'
+      ctx.globalAlpha = alpha
       ctx.beginPath()
       ctx.arc(node.x, node.y, size * 0.4, 0, Math.PI * 2)
       ctx.fill()
@@ -193,15 +216,16 @@ export function MemoryPage() {
       ctx.shadowBlur = 0
       ctx.globalAlpha = 1
 
-      // Label
       if (isHighlighted) {
-        ctx.fillStyle = isHighlighted ? '#e2e0f0' : 'rgba(226,224,240,0.3)'
-        ctx.font = '11px system-ui'
+        ctx.fillStyle = '#e2e0f0'
+        ctx.globalAlpha = alpha
+        ctx.font = '10px system-ui'
         ctx.textAlign = 'center'
         ctx.fillText(node.label, node.x, node.y + size + 14)
+        ctx.globalAlpha = 1
       }
     }
-  }, [nodes, searchQuery, selectedNode])
+  }, [nodes, searchQuery, selectedNode, filterType, filterTime, filteredIds])
 
   // Click handler
   function handleCanvasClick(e: React.MouseEvent) {
@@ -211,7 +235,7 @@ export function MemoryPage() {
     const y = e.clientY - rect.top
 
     for (const node of nodes) {
-      const size = 8 + node.importance * 14
+      const size = 6 + node.importance * 12
       const dx = x - node.x
       const dy = y - node.y
       if (dx * dx + dy * dy < (size + 5) * (size + 5)) {
@@ -235,6 +259,10 @@ export function MemoryPage() {
     )
   }
 
+  const connectedNodes = selectedNode
+    ? memoryNodes.filter((n) => selectedNode.connections.includes(n.id))
+    : []
+
   return (
     <div className="min-h-screen pt-16 md:pt-14 pb-20 md:pb-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -245,29 +273,85 @@ export function MemoryPage() {
               记忆图谱
             </h1>
             <p className="text-xs text-gray-400 mt-1">
-              {memoryNodes.length} 条记忆 &middot; 点击节点查看详情
+              {memoryNodes.length} 条记忆 · {memoryNodes.filter(n => n.isCore).length} 条核心记忆 · 点击节点查看详情
             </p>
           </div>
         </div>
 
         {/* Search */}
-        <div className="relative mb-4">
+        <div className="relative mb-3">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索记忆..."
+            placeholder="搜索记忆（内容、标签、情感...）"
             className="w-full bg-surface-100 border border-primary-900/40 rounded-xl pl-10 pr-4 py-2.5 text-sm text-primary-100 placeholder-gray-500 focus:outline-none focus:border-primary-500/50"
           />
         </div>
 
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {/* Type filter */}
+          <div className="flex items-center gap-1">
+            <Filter size={12} className="text-gray-500" />
+            <span className="text-[10px] text-gray-500 mr-1">类型:</span>
+            {Object.entries(typeLabels).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setFilterType(filterType === key ? null : key)}
+                className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-full cursor-pointer transition-all ${
+                  filterType === key
+                    ? 'bg-primary-600/30 border border-primary-500/50'
+                    : 'bg-surface-100/50 border border-transparent text-gray-400 hover:text-primary-300'
+                }`}
+              >
+                <div className="w-2 h-2 rounded-full" style={{ background: typeColors[key] }} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          {/* Time filter */}
+          <div className="flex items-center gap-1">
+            <Clock size={12} className="text-gray-500" />
+            <span className="text-[10px] text-gray-500 mr-1">时间:</span>
+            {[
+              { key: 'core', label: '核心记忆' },
+              { key: 'recent', label: '近期记忆' },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilterTime(filterTime === f.key ? null : f.key)}
+                className={`text-[10px] px-2 py-1 rounded-full cursor-pointer transition-all ${
+                  filterTime === f.key
+                    ? 'bg-warm-500/20 border border-warm-500/50 text-warm-300'
+                    : 'bg-surface-100/50 border border-transparent text-gray-400 hover:text-primary-300'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {(filterType || filterTime || searchQuery) && (
+            <button
+              onClick={() => { setFilterType(null); setFilterTime(null); setSearchQuery('') }}
+              className="text-[10px] text-gray-500 hover:text-primary-300 cursor-pointer ml-auto"
+            >
+              清除筛选
+            </button>
+          )}
+        </div>
+
         {/* Legend */}
-        <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex flex-wrap gap-3 mb-3">
           {Object.entries(typeLabels).map(([key, label]) => (
             <div key={key} className="flex items-center gap-1.5 text-xs text-gray-400">
               <div className="w-3 h-3 rounded-full" style={{ background: typeColors[key] }} />
-              {label}
+              {label} ({memoryNodes.filter(n => n.type === key).length})
             </div>
           ))}
         </div>
@@ -298,6 +382,9 @@ export function MemoryPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 rounded-full" style={{ background: typeColors[selectedNode.type] }} />
                   <h3 className="text-lg font-semibold text-primary-100">{selectedNode.label}</h3>
+                  {selectedNode.isCore && (
+                    <span className="text-[10px] bg-warm-500/20 text-warm-300 px-2 py-0.5 rounded-full">核心记忆</span>
+                  )}
                 </div>
                 <button onClick={() => setSelectedNode(null)} className="text-gray-500 hover:text-gray-300 cursor-pointer">
                   <X size={20} />
@@ -306,17 +393,71 @@ export function MemoryPage() {
 
               <p className="text-gray-300 text-sm leading-relaxed mb-4">{selectedNode.content}</p>
 
-              <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+              {/* Meta info */}
+              <div className="flex flex-wrap gap-4 text-xs text-gray-500 mb-4">
                 <span>类型: <span className="text-primary-300">{typeLabels[selectedNode.type]}</span></span>
                 <span>重要性: <span className="text-primary-300">{Math.round(selectedNode.importance * 100)}%</span></span>
                 <span>
                   情感:
                   <span className={selectedNode.emotionalValence > 0 ? 'text-warm-400' : selectedNode.emotionalValence < 0 ? 'text-blue-400' : 'text-gray-400'}>
                     {' '}{selectedNode.emotionalValence > 0 ? '正面' : selectedNode.emotionalValence < 0 ? '负面' : '中性'}
+                    {' '}({selectedNode.emotionalValence > 0 ? '+' : ''}{selectedNode.emotionalValence.toFixed(1)})
                   </span>
                 </span>
-                <span>关联: <span className="text-primary-300">{selectedNode.connections.length} 条记忆</span></span>
+                {selectedNode.timestamp && (
+                  <span>时间: <span className="text-primary-300">{selectedNode.timestamp}</span></span>
+                )}
               </div>
+
+              {/* Emotion tags */}
+              {selectedNode.emotionTags && selectedNode.emotionTags.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
+                    <Tag size={12} />
+                    情感标签
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedNode.emotionTags.map((tag, i) => (
+                      <span key={i} className="text-[10px] bg-primary-900/30 text-primary-300 px-2 py-1 rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Related dialogs */}
+              {selectedNode.relatedDialogs && selectedNode.relatedDialogs.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-xs text-gray-500 mb-2">关联对话</div>
+                  <div className="space-y-1.5">
+                    {selectedNode.relatedDialogs.map((dialog, i) => (
+                      <div key={i} className="text-xs text-gray-300 bg-surface-200/30 px-3 py-2 rounded-lg border-l-2 border-primary-500/30">
+                        "{dialog}"
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Connected nodes */}
+              {connectedNodes.length > 0 && (
+                <div>
+                  <div className="text-xs text-gray-500 mb-2">关联记忆 ({connectedNodes.length})</div>
+                  <div className="flex flex-wrap gap-2">
+                    {connectedNodes.map((n) => (
+                      <button
+                        key={n.id}
+                        onClick={() => setSelectedNode(n)}
+                        className="flex items-center gap-1.5 text-xs bg-surface-200/30 text-gray-300 px-3 py-1.5 rounded-lg hover:bg-primary-900/20 hover:text-primary-200 transition-colors cursor-pointer"
+                      >
+                        <div className="w-2 h-2 rounded-full" style={{ background: typeColors[n.type] }} />
+                        {n.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

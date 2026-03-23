@@ -6,6 +6,8 @@ import { ChatPage } from './pages/ChatPage'
 import { SocialPage } from './pages/SocialPage'
 import { MemoryPage } from './pages/MemoryPage'
 import { CapsulePage } from './pages/CapsulePage'
+import { GrowthPage } from './pages/GrowthPage'
+import { ChallengePage } from './pages/ChallengePage'
 
 function App() {
   const currentPage = useStore((s) => s.currentPage)
@@ -17,6 +19,8 @@ function App() {
     social: <SocialPage />,
     memory: <MemoryPage />,
     capsule: <CapsulePage />,
+    growth: <GrowthPage />,
+    challenge: <ChallengePage />,
   }
 
   return (

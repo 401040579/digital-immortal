@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import {
   Home, MessageCircle, Users, Brain,
-  Clock, Sparkles, Menu, X
+  Clock, Sparkles, Menu, X, Calendar, Gamepad2
 } from 'lucide-react'
 import { useState } from 'react'
 import { useStore } from '../store/useStore'
@@ -10,9 +10,20 @@ const navItems = [
   { id: 'landing', label: '首页', icon: Home },
   { id: 'create', label: '创建分身', icon: Sparkles },
   { id: 'chat', label: '对话', icon: MessageCircle },
-  { id: 'social', label: '社交控制台', icon: Users },
-  { id: 'memory', label: '记忆图谱', icon: Brain },
-  { id: 'capsule', label: '时间胶囊', icon: Clock },
+  { id: 'social', label: '社交', icon: Users },
+  { id: 'memory', label: '记忆', icon: Brain },
+  { id: 'capsule', label: '胶囊', icon: Clock },
+  { id: 'growth', label: '成长', icon: Calendar },
+  { id: 'challenge', label: '挑战', icon: Gamepad2 },
+]
+
+// Bottom nav only shows key items
+const bottomNavItems = [
+  { id: 'landing', label: '首页', icon: Home },
+  { id: 'chat', label: '对话', icon: MessageCircle },
+  { id: 'social', label: '社交', icon: Users },
+  { id: 'memory', label: '记忆', icon: Brain },
+  { id: 'growth', label: '成长', icon: Calendar },
 ]
 
 export function Navigation() {
@@ -98,7 +109,7 @@ export function Navigation() {
       {/* Bottom mobile nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-50/90 backdrop-blur-xl border-t border-primary-900/30">
         <div className="flex items-center justify-around py-2 px-2">
-          {navItems.slice(0, 5).map((item) => (
+          {bottomNavItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setCurrentPage(item.id)}
