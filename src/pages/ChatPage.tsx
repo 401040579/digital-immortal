@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Info, TrendingUp, Lightbulb } from 'lucide-react'
+import { Send, Info, TrendingUp, Lightbulb, Cloud, CloudOff } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { useStore } from '../store/useStore'
 import { generateEnhancedResponse, getQuickTopics, chatScenarios } from '../data/chatScenarios'
 import { NebulaAvatar } from '../components/NebulaAvatar'
+import { isBackendAvailable, avatarChat } from '../api/client'
 
 const similarityData = [
   { day: '第1天', value: 35 },
@@ -31,11 +32,17 @@ export function ChatPage() {
   const [showChart, setShowChart] = useState(false)
   const [showTopics, setShowTopics] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [backendOnline, setBackendOnline] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Check backend availability on mount
+  useEffect(() => {
+    isBackendAvailable().then(setBackendOnline).catch(() => setBackendOnline(false))
+  }, [])
 
   if (!profile) {
     return (
@@ -68,18 +75,53 @@ export function ChatPage() {
     setShowTopics(false)
     setSelectedCategory(null)
 
-    await new Promise((r) => setTimeout(r, 800 + Math.random() * 1200))
-
-    const response = generateEnhancedResponse(userMsg.text, profile!)
-    const avatarMsg = {
-      id: (Date.now() + 1).toString(),
-      text: response.text,
-      sender: 'avatar' as const,
-      timestamp: Date.now(),
-      confidence: response.confidence,
+    try {
+      if (backendOnline) {
+        // Use real Claude API via backend
+        const recentHistory = messages.slice(-10).map((m) => ({
+          text: m.text,
+          sender: m.sender,
+        }))
+        const result = await avatarChat({
+          message: msgText,
+          conversationHistory: recentHistory,
+        })
+        const avatarMsg = {
+          id: (Date.now() + 1).toString(),
+          text: result.reply,
+          sender: 'avatar' as const,
+          timestamp: Date.now(),
+          confidence: result.confidence,
+        }
+        addMessage(avatarMsg)
+      } else {
+        // Fallback: local mock response
+        await new Promise((r) => setTimeout(r, 800 + Math.random() * 1200))
+        const response = generateEnhancedResponse(userMsg.text, profile!)
+        const avatarMsg = {
+          id: (Date.now() + 1).toString(),
+          text: response.text,
+          sender: 'avatar' as const,
+          timestamp: Date.now(),
+          confidence: response.confidence,
+        }
+        addMessage(avatarMsg)
+      }
+    } catch (err) {
+      console.error('Chat error:', err)
+      // Fallback to local on error
+      const response = generateEnhancedResponse(userMsg.text, profile!)
+      const avatarMsg = {
+        id: (Date.now() + 1).toString(),
+        text: response.text,
+        sender: 'avatar' as const,
+        timestamp: Date.now(),
+        confidence: response.confidence,
+      }
+      addMessage(avatarMsg)
+    } finally {
+      setIsTyping(false)
     }
-    addMessage(avatarMsg)
-    setIsTyping(false)
   }
 
   function getConfidenceColor(c: number) {
@@ -111,6 +153,15 @@ export function ChatPage() {
             <div className="text-xs text-green-400 flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
               在线 · 相似度 {profile.similarity ?? 78}%
+              {backendOnline ? (
+                <span className="ml-1.5 flex items-center gap-0.5 text-[10px] text-sky-400" title="Claude AI 云端模式">
+                  <Cloud size={10} /> AI
+                </span>
+              ) : (
+                <span className="ml-1.5 flex items-center gap-0.5 text-[10px] text-gray-500" title="本地模式">
+                  <CloudOff size={10} /> 本地
+                </span>
+              )}
             </div>
           </div>
         </div>

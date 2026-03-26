@@ -1,0 +1,213 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Digital Immortal - AI Avatar Backend
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        USERS_TABLE: !Ref DIUsersTable
+        AVATARS_TABLE: !Ref DIAvatarsTable
+        MEMORIES_TABLE: !Ref DIMemoriesTable
+        CONVERSATIONS_TABLE: !Ref DIConversationsTable
+        ANTHROPIC_API_KEY_PARAM: /app/anthropic-api-key
+
+Parameters:
+  AllowedOrigins:
+    Type: String
+    Default: "https://401040579.github.io,http://localhost:5173,http://localhost:3000"
+    Description: Comma-separated list of allowed CORS origins
+
+Resources:
+  # ---------- API Gateway ----------
+  DIHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - "https://401040579.github.io"
+          - "http://localhost:5173"
+          - "http://localhost:3000"
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-User-Id
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - OPTIONS
+        MaxAge: 3600
+
+  # ---------- DynamoDB Tables ----------
+  DIUsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DIUsers
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+
+  DIAvatarsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DIAvatars
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+
+  DIMemoriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DIMemories
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: memoryId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: memoryId
+          KeyType: RANGE
+
+  DIConversationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DIConversations
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: conversationId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: conversationId
+          KeyType: RANGE
+
+  # ---------- Lambda Functions ----------
+  AvatarChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/avatarChat.handler
+      Timeout: 60
+      MemorySize: 512
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DIAvatarsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DIMemoriesTable
+        - SSMParameterReadPolicy:
+            ParameterName: app/anthropic-api-key
+      Events:
+        Chat:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DIHttpApi
+            Path: /api/chat
+            Method: POST
+
+  SaveAvatarFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/saveAvatar.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DIAvatarsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DIUsersTable
+      Events:
+        Save:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DIHttpApi
+            Path: /api/avatar
+            Method: POST
+
+  GetAvatarFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/getAvatar.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DIAvatarsTable
+      Events:
+        Get:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DIHttpApi
+            Path: /api/avatar
+            Method: GET
+
+  SaveMemoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/saveMemory.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DIMemoriesTable
+      Events:
+        Save:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DIHttpApi
+            Path: /api/memories
+            Method: POST
+
+  GetMemoriesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/getMemories.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DIMemoriesTable
+      Events:
+        Get:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DIHttpApi
+            Path: /api/memories
+            Method: GET
+
+  SaveConversationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/saveConversation.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DIConversationsTable
+      Events:
+        Save:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref DIHttpApi
+            Path: /api/conversations
+            Method: POST
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${DIHttpApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+  DIUsersTableName:
+    Value: !Ref DIUsersTable
+  DIAvatarsTableName:
+    Value: !Ref DIAvatarsTable
+  DIMemoriesTableName:
+    Value: !Ref DIMemoriesTable
+  DIConversationsTableName:
+    Value: !Ref DIConversationsTable

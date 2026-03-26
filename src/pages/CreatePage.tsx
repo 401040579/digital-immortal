@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeft, Sparkles, Check } from 'lucide-react'
 import { personalityQuestions, valueOptions } from '../data/mockData'
 import { NebulaAvatar } from '../components/NebulaAvatar'
 import { useStore } from '../store/useStore'
+import { isBackendAvailable, saveAvatar } from '../api/client'
 
 type Step = 'welcome' | 'name' | 'personality' | 'style' | 'values' | 'catchphrases' | 'complete'
 
@@ -39,7 +40,7 @@ export function CreatePage() {
     setAnswers((prev) => ({ ...prev, [dimension]: value }))
   }
 
-  function completeCreation() {
+  async function completeCreation() {
     const profile = {
       name,
       bigFive: {
@@ -61,6 +62,17 @@ export function CreatePage() {
     }
     setProfile(profile)
     setStep('complete')
+
+    // Save to cloud backend if available (fire-and-forget)
+    try {
+      const online = await isBackendAvailable()
+      if (online) {
+        await saveAvatar(profile)
+        console.log('[DI] Avatar saved to cloud backend')
+      }
+    } catch (err) {
+      console.warn('[DI] Failed to save avatar to cloud, local copy is fine:', err)
+    }
   }
 
   function toggleValue(v: string) {
