@@ -5,6 +5,7 @@ import { personalityQuestions, valueOptions } from '../data/mockData'
 import { NebulaAvatar } from '../components/NebulaAvatar'
 import { useStore } from '../store/useStore'
 import { isBackendAvailable, saveAvatar } from '../api/client'
+import { useI18n } from '../i18n'
 
 type Step = 'welcome' | 'name' | 'personality' | 'style' | 'values' | 'catchphrases' | 'complete'
 
@@ -12,6 +13,7 @@ const steps: Step[] = ['welcome', 'name', 'personality', 'style', 'values', 'cat
 
 export function CreatePage() {
   const { setProfile, setCurrentPage } = useStore()
+  const { t } = useI18n()
   const [step, setStep] = useState<Step>('welcome')
   const [name, setName] = useState('')
   const [answers, setAnswers] = useState<Record<string, number>>({})
@@ -25,6 +27,25 @@ export function CreatePage() {
 
   const personalityQs = personalityQuestions.filter((q) => ['agreeableness', 'openness', 'extraversion', 'conscientiousness', 'neuroticism'].includes(q.dimension))
   const styleQs = personalityQuestions.filter((q) => ['formality', 'humor', 'emotionality'].includes(q.dimension))
+
+  // Get translated question data
+  function getQuestionText(qIndex: number) {
+    return t(`create.personalityQuestions.${qIndex}.question`)
+  }
+  function getOptionText(qIndex: number, optIndex: number) {
+    return t(`create.personalityQuestions.${qIndex}.options.${optIndex}`)
+  }
+  function getMinLabel(qIndex: number) {
+    return t(`create.personalityQuestions.${qIndex}.minLabel`)
+  }
+  function getMaxLabel(qIndex: number) {
+    return t(`create.personalityQuestions.${qIndex}.maxLabel`)
+  }
+
+  // Get translated value options
+  function getValueText(index: number) {
+    return t(`create.valueOptions.${index}`)
+  }
 
   function nextStep() {
     const i = steps.indexOf(step)
@@ -88,8 +109,14 @@ export function CreatePage() {
     }
   }
 
+  // Map original question index to personality/style question arrays
   const currentQs = step === 'personality' ? personalityQs : styleQs
   const currentQ = currentQs[questionIdx]
+
+  // Find original index in personalityQuestions for i18n
+  function getOriginalIndex(q: typeof currentQ) {
+    return personalityQuestions.findIndex((pq) => pq.id === q.id)
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20">
@@ -103,8 +130,8 @@ export function CreatePage() {
           />
         </div>
         <div className="flex justify-between mt-2 text-xs text-gray-500">
-          <span>开始</span>
-          <span>完成</span>
+          <span>{t('common.progressStart')}</span>
+          <span>{t('common.progressDone')}</span>
         </div>
       </div>
 
@@ -121,11 +148,11 @@ export function CreatePage() {
             >
               <NebulaAvatar size={100} className="mx-auto mb-6" />
               <h2 className="text-2xl md:text-3xl font-bold text-primary-100 mb-3">
-                你好，我是 Digital Immortal
+                {t('create.welcomeTitle')}
               </h2>
               <p className="text-gray-400 mb-8 leading-relaxed">
-                准备好创建另一个你了吗？<br />
-                这个过程大约需要5分钟，让我们开始吧！
+                {t('create.welcomeDesc')}<br />
+                {t('create.welcomeDesc2')}
               </p>
               <motion.button
                 whileHover={{ scale: 1.03 }}
@@ -133,7 +160,7 @@ export function CreatePage() {
                 onClick={nextStep}
                 className="bg-primary-600 hover:bg-primary-500 text-white px-8 py-3 rounded-xl font-medium flex items-center gap-2 mx-auto cursor-pointer"
               >
-                开始 <ArrowRight size={18} />
+                {t('common.start')} <ArrowRight size={18} />
               </motion.button>
             </motion.div>
           )}
@@ -148,19 +175,19 @@ export function CreatePage() {
               className="text-center"
             >
               <h2 className="text-2xl font-bold text-primary-100 mb-3">
-                先给你的数字分身起个名字
+                {t('create.nameTitle')}
               </h2>
-              <p className="text-gray-400 mb-8">很多人用自己的昵称</p>
+              <p className="text-gray-400 mb-8">{t('create.nameDesc')}</p>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="输入名字..."
+                placeholder={t('create.namePlaceholder')}
                 className="w-full bg-surface-100 border border-primary-900/40 rounded-xl px-6 py-4 text-lg text-primary-100 placeholder-gray-500 focus:outline-none focus:border-primary-500/50 mb-8"
               />
               <div className="flex justify-between">
                 <button onClick={prevStep} className="text-gray-400 flex items-center gap-1 cursor-pointer">
-                  <ArrowLeft size={16} /> 返回
+                  <ArrowLeft size={16} /> {t('common.back')}
                 </button>
                 <motion.button
                   whileHover={{ scale: 1.03 }}
@@ -169,7 +196,7 @@ export function CreatePage() {
                   disabled={!name.trim()}
                   className="bg-primary-600 hover:bg-primary-500 disabled:opacity-40 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                 >
-                  下一步 <ArrowRight size={18} />
+                  {t('common.next')} <ArrowRight size={18} />
                 </motion.button>
               </div>
             </motion.div>
@@ -184,9 +211,9 @@ export function CreatePage() {
               exit={{ opacity: 0, x: -50 }}
             >
               <div className="text-xs text-primary-400 mb-2">
-                性格问卷 {questionIdx + 1}/{personalityQs.length}
+                {t('create.personalityLabel')} {questionIdx + 1}/{personalityQs.length}
               </div>
-              <h2 className="text-xl font-bold text-primary-100 mb-8">{currentQ.question}</h2>
+              <h2 className="text-xl font-bold text-primary-100 mb-8">{getQuestionText(getOriginalIndex(currentQ))}</h2>
 
               {currentQ.type === 'choice' && currentQ.options && (
                 <div className="space-y-3 mb-8">
@@ -200,7 +227,7 @@ export function CreatePage() {
                           : 'border-primary-900/30 bg-surface-100/50 text-gray-300 hover:border-primary-700/40'
                       }`}
                     >
-                      {opt.label}
+                      {getOptionText(getOriginalIndex(currentQ), i)}
                     </button>
                   ))}
                 </div>
@@ -217,8 +244,8 @@ export function CreatePage() {
                     className="w-full accent-primary-500"
                   />
                   <div className="flex justify-between text-sm text-gray-400 mt-2">
-                    <span>{currentQ.minLabel}</span>
-                    <span>{currentQ.maxLabel}</span>
+                    <span>{getMinLabel(getOriginalIndex(currentQ))}</span>
+                    <span>{getMaxLabel(getOriginalIndex(currentQ))}</span>
                   </div>
                 </div>
               )}
@@ -231,7 +258,7 @@ export function CreatePage() {
                   }}
                   className="text-gray-400 flex items-center gap-1 cursor-pointer"
                 >
-                  <ArrowLeft size={16} /> 返回
+                  <ArrowLeft size={16} /> {t('common.back')}
                 </button>
                 <motion.button
                   whileHover={{ scale: 1.03 }}
@@ -245,7 +272,7 @@ export function CreatePage() {
                   }}
                   className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 cursor-pointer"
                 >
-                  {questionIdx < personalityQs.length - 1 ? '下一题' : '下一步'} <ArrowRight size={18} />
+                  {questionIdx < personalityQs.length - 1 ? t('common.nextQuestion') : t('common.next')} <ArrowRight size={18} />
                 </motion.button>
               </div>
             </motion.div>
@@ -259,32 +286,35 @@ export function CreatePage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
             >
-              <h2 className="text-xl font-bold text-primary-100 mb-2">语言风格设置</h2>
-              <p className="text-gray-400 text-sm mb-8">调整滑块来描述你的说话风格</p>
+              <h2 className="text-xl font-bold text-primary-100 mb-2">{t('create.styleTitle')}</h2>
+              <p className="text-gray-400 text-sm mb-8">{t('create.styleDesc')}</p>
 
               <div className="space-y-8 mb-8">
-                {styleQs.map((q) => (
-                  <div key={q.id}>
-                    <label className="text-sm text-primary-200 mb-2 block">{q.question}</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={(answers[q.dimension] ?? 0.5) * 100}
-                      onChange={(e) => handleAnswer(q.dimension, parseInt(e.target.value) / 100)}
-                      className="w-full accent-primary-500"
-                    />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>{q.minLabel}</span>
-                      <span>{q.maxLabel}</span>
+                {styleQs.map((q) => {
+                  const origIdx = getOriginalIndex(q)
+                  return (
+                    <div key={q.id}>
+                      <label className="text-sm text-primary-200 mb-2 block">{getQuestionText(origIdx)}</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={(answers[q.dimension] ?? 0.5) * 100}
+                        onChange={(e) => handleAnswer(q.dimension, parseInt(e.target.value) / 100)}
+                        className="w-full accent-primary-500"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>{getMinLabel(origIdx)}</span>
+                        <span>{getMaxLabel(origIdx)}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               <div className="flex justify-between">
                 <button onClick={prevStep} className="text-gray-400 flex items-center gap-1 cursor-pointer">
-                  <ArrowLeft size={16} /> 返回
+                  <ArrowLeft size={16} /> {t('common.back')}
                 </button>
                 <motion.button
                   whileHover={{ scale: 1.03 }}
@@ -292,7 +322,7 @@ export function CreatePage() {
                   onClick={nextStep}
                   className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 cursor-pointer"
                 >
-                  下一步 <ArrowRight size={18} />
+                  {t('common.next')} <ArrowRight size={18} />
                 </motion.button>
               </div>
             </motion.div>
@@ -306,11 +336,11 @@ export function CreatePage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
             >
-              <h2 className="text-xl font-bold text-primary-100 mb-2">你的核心价值观</h2>
-              <p className="text-gray-400 text-sm mb-6">选择最能代表你的3-5个价值观</p>
+              <h2 className="text-xl font-bold text-primary-100 mb-2">{t('create.valuesTitle')}</h2>
+              <p className="text-gray-400 text-sm mb-6">{t('create.valuesDesc')}</p>
 
               <div className="flex flex-wrap gap-2 mb-8">
-                {valueOptions.map((v) => (
+                {valueOptions.map((v, i) => (
                   <button
                     key={v}
                     onClick={() => toggleValue(v)}
@@ -321,14 +351,14 @@ export function CreatePage() {
                     }`}
                   >
                     {selectedValues.includes(v) && <Check size={14} className="inline mr-1" />}
-                    {v}
+                    {getValueText(i)}
                   </button>
                 ))}
               </div>
 
               <div className="flex justify-between">
                 <button onClick={prevStep} className="text-gray-400 flex items-center gap-1 cursor-pointer">
-                  <ArrowLeft size={16} /> 返回
+                  <ArrowLeft size={16} /> {t('common.back')}
                 </button>
                 <motion.button
                   whileHover={{ scale: 1.03 }}
@@ -337,7 +367,7 @@ export function CreatePage() {
                   disabled={selectedValues.length < 1}
                   className="bg-primary-600 hover:bg-primary-500 disabled:opacity-40 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                 >
-                  下一步 <ArrowRight size={18} />
+                  {t('common.next')} <ArrowRight size={18} />
                 </motion.button>
               </div>
             </motion.div>
@@ -351,9 +381,9 @@ export function CreatePage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
             >
-              <h2 className="text-xl font-bold text-primary-100 mb-2">你的口头禅</h2>
+              <h2 className="text-xl font-bold text-primary-100 mb-2">{t('create.catchphrasesTitle')}</h2>
               <p className="text-gray-400 text-sm mb-6">
-                添加你经常说的话（最多5个），让分身更像你
+                {t('create.catchphrasesDesc')}
               </p>
 
               <div className="flex gap-2 mb-4">
@@ -362,7 +392,7 @@ export function CreatePage() {
                   value={phraseInput}
                   onChange={(e) => setPhraseInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addPhrase()}
-                  placeholder={'比如\u201c绝绝子\u201d、\u201c有道理\u201d...'}
+                  placeholder={t('create.catchphrasesPlaceholder')}
                   className="flex-1 bg-surface-100 border border-primary-900/40 rounded-xl px-4 py-3 text-primary-100 placeholder-gray-500 focus:outline-none focus:border-primary-500/50"
                 />
                 <motion.button
@@ -371,7 +401,7 @@ export function CreatePage() {
                   disabled={!phraseInput.trim() || catchphrases.length >= 5}
                   className="bg-primary-600 hover:bg-primary-500 disabled:opacity-40 text-white px-4 py-3 rounded-xl cursor-pointer disabled:cursor-not-allowed"
                 >
-                  添加
+                  {t('common.add')}
                 </motion.button>
               </div>
 
@@ -396,7 +426,7 @@ export function CreatePage() {
 
               <div className="flex justify-between mt-8">
                 <button onClick={prevStep} className="text-gray-400 flex items-center gap-1 cursor-pointer">
-                  <ArrowLeft size={16} /> 返回
+                  <ArrowLeft size={16} /> {t('common.back')}
                 </button>
                 <motion.button
                   whileHover={{ scale: 1.03 }}
@@ -405,7 +435,7 @@ export function CreatePage() {
                   className="bg-gradient-to-r from-primary-600 to-warm-500 text-white px-8 py-3 rounded-xl font-medium flex items-center gap-2 cursor-pointer"
                 >
                   <Sparkles size={18} />
-                  创建分身
+                  {t('create.createButton')}
                 </motion.button>
               </div>
             </motion.div>
@@ -428,16 +458,16 @@ export function CreatePage() {
               </motion.div>
 
               <h2 className="text-2xl font-bold text-primary-100 mb-2">
-                你的分身已创建！
+                {t('create.completeTitle')}
               </h2>
               <p className="text-lg text-primary-300 mb-1">"{name}"</p>
               <p className="text-gray-400 text-sm mb-8">
-                一颗独一无二的星云，正在学习成为你
+                {t('create.completeDesc')}
               </p>
 
               {/* Profile card */}
               <div className="bg-surface-100/50 border border-primary-900/30 rounded-2xl p-6 mb-6 text-left">
-                <h3 className="text-primary-200 font-semibold mb-4">分身档案</h3>
+                <h3 className="text-primary-200 font-semibold mb-4">{t('create.profileCard')}</h3>
 
                 {/* Similarity gauge */}
                 <div className="text-center mb-6">
@@ -460,25 +490,25 @@ export function CreatePage() {
                       <span className="text-2xl font-bold text-primary-200">
                         {useStore.getState().profile?.similarity ?? 40}%
                       </span>
-                      <span className="text-xs text-gray-500">相似度</span>
+                      <span className="text-xs text-gray-500">{t('create.similarityLabel')}</span>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-400 mt-2">小种子阶段 -- 每天聊一聊，它会越来越像你</p>
+                  <p className="text-sm text-gray-400 mt-2">{t('create.seedStage')}</p>
                 </div>
 
                 {/* Big Five */}
                 <div className="space-y-3">
-                  {[
-                    { label: '开放性', key: 'openness' as const },
-                    { label: '尽责性', key: 'conscientiousness' as const },
-                    { label: '外向性', key: 'extraversion' as const },
-                    { label: '宜人性', key: 'agreeableness' as const },
-                    { label: '情绪性', key: 'neuroticism' as const },
-                  ].map((dim) => {
+                  {([
+                    { labelKey: 'create.bigFive.openness', key: 'openness' as const },
+                    { labelKey: 'create.bigFive.conscientiousness', key: 'conscientiousness' as const },
+                    { labelKey: 'create.bigFive.extraversion', key: 'extraversion' as const },
+                    { labelKey: 'create.bigFive.agreeableness', key: 'agreeableness' as const },
+                    { labelKey: 'create.bigFive.neuroticism', key: 'neuroticism' as const },
+                  ]).map((dim) => {
                     const val = (useStore.getState().profile?.bigFive[dim.key] ?? 0.5) * 100
                     return (
                       <div key={dim.key} className="flex items-center gap-3">
-                        <span className="text-xs text-gray-400 w-16 shrink-0">{dim.label}</span>
+                        <span className="text-xs text-gray-400 w-16 shrink-0">{t(dim.labelKey)}</span>
                         <div className="flex-1 h-2 bg-surface-200 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-primary-600 to-primary-400 rounded-full"
@@ -493,10 +523,10 @@ export function CreatePage() {
 
                 {selectedValues.length > 0 && (
                   <div className="mt-4">
-                    <span className="text-xs text-gray-500">价值观: </span>
+                    <span className="text-xs text-gray-500">{t('create.valuesLabel')}</span>
                     {selectedValues.map((v) => (
                       <span key={v} className="text-xs bg-primary-900/30 text-primary-300 px-2 py-1 rounded mr-1">
-                        {v}
+                        {getValueText(valueOptions.indexOf(v))}
                       </span>
                     ))}
                   </div>
@@ -510,13 +540,13 @@ export function CreatePage() {
                   onClick={() => setCurrentPage('chat')}
                   className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-medium cursor-pointer"
                 >
-                  和分身对话
+                  {t('create.chatButton')}
                 </motion.button>
                 <button
                   onClick={() => setCurrentPage('social')}
                   className="bg-surface-100 hover:bg-surface-200 text-primary-300 px-6 py-3 rounded-xl font-medium cursor-pointer"
                 >
-                  探索更多
+                  {t('common.explore')}
                 </button>
               </div>
             </motion.div>

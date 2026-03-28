@@ -5,30 +5,35 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useStore } from '../store/useStore'
-
-const navItems = [
-  { id: 'landing', label: '首页', icon: Home },
-  { id: 'create', label: '创建分身', icon: Sparkles },
-  { id: 'chat', label: '对话', icon: MessageCircle },
-  { id: 'social', label: '社交', icon: Users },
-  { id: 'memory', label: '记忆', icon: Brain },
-  { id: 'capsule', label: '胶囊', icon: Clock },
-  { id: 'growth', label: '成长', icon: Calendar },
-  { id: 'challenge', label: '挑战', icon: Gamepad2 },
-]
-
-// Bottom nav only shows key items
-const bottomNavItems = [
-  { id: 'landing', label: '首页', icon: Home },
-  { id: 'chat', label: '对话', icon: MessageCircle },
-  { id: 'social', label: '社交', icon: Users },
-  { id: 'memory', label: '记忆', icon: Brain },
-  { id: 'growth', label: '成长', icon: Calendar },
-]
+import { useI18n } from '../i18n'
 
 export function Navigation() {
   const { currentPage, setCurrentPage } = useStore()
+  const { t, locale, setLocale } = useI18n()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const navItems = [
+    { id: 'landing', label: t('nav.home'), icon: Home },
+    { id: 'create', label: t('nav.createAvatar'), icon: Sparkles },
+    { id: 'chat', label: t('nav.chat'), icon: MessageCircle },
+    { id: 'social', label: t('nav.social'), icon: Users },
+    { id: 'memory', label: t('nav.memory'), icon: Brain },
+    { id: 'capsule', label: t('nav.capsule'), icon: Clock },
+    { id: 'growth', label: t('nav.growth'), icon: Calendar },
+    { id: 'challenge', label: t('nav.challenge'), icon: Gamepad2 },
+  ]
+
+  const bottomNavItems = [
+    { id: 'landing', label: t('nav.home'), icon: Home },
+    { id: 'chat', label: t('nav.chat'), icon: MessageCircle },
+    { id: 'social', label: t('nav.social'), icon: Users },
+    { id: 'memory', label: t('nav.memory'), icon: Brain },
+    { id: 'growth', label: t('nav.growth'), icon: Calendar },
+  ]
+
+  function toggleLocale() {
+    setLocale(locale === 'en' ? 'zh' : 'en')
+  }
 
   return (
     <>
@@ -57,6 +62,13 @@ export function Navigation() {
                 {item.label}
               </button>
             ))}
+            <button
+              onClick={toggleLocale}
+              className="ml-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-primary-900/30 text-primary-300 hover:bg-primary-900/20 transition-all cursor-pointer"
+              title={locale === 'en' ? 'Switch to Chinese' : '切换到英文'}
+            >
+              {locale === 'en' ? '中' : 'EN'}
+            </button>
           </div>
         </div>
       </nav>
@@ -71,12 +83,20 @@ export function Navigation() {
             <Sparkles size={18} />
             Digital Immortal
           </button>
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="text-gray-400 p-1 cursor-pointer"
-          >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleLocale}
+              className="px-2 py-1 rounded-lg text-xs font-semibold border border-primary-900/30 text-primary-300 hover:bg-primary-900/20 transition-all cursor-pointer"
+            >
+              {locale === 'en' ? '中' : 'EN'}
+            </button>
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="text-gray-400 p-1 cursor-pointer"
+            >
+              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
 
         {mobileOpen && (

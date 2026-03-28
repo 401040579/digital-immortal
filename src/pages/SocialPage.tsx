@@ -5,49 +5,51 @@ import { useStore, type Friend } from '../store/useStore'
 import { socialLogs, weeklyReport, avatarConversations, socialFeed, friendDetails } from '../data/mockData'
 import { NebulaAvatar } from '../components/NebulaAvatar'
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, LineChart, Line } from 'recharts'
-
-const permissionLabels: Record<number, { label: string; desc: string; color: string }> = {
-  0: { label: 'Level 0', desc: '禁止代回复', color: 'text-red-400' },
-  1: { label: 'Level 1', desc: '仅草拟（需确认）', color: 'text-yellow-400' },
-  2: { label: 'Level 2', desc: '自动回复', color: 'text-green-400' },
-  3: { label: 'Level 3', desc: '完全自主', color: 'text-primary-400' },
-}
-
-const frequencyLabels: Record<string, { label: string; color: string }> = {
-  high: { label: '频繁互动', color: 'text-green-400' },
-  medium: { label: '一般互动', color: 'text-yellow-400' },
-  low: { label: '偶尔互动', color: 'text-gray-400' },
-}
-
-const moodColors: Record<string, string> = {
-  friendly: 'border-green-500/30 bg-green-500/5',
-  deep: 'border-purple-500/30 bg-purple-500/5',
-  fun: 'border-yellow-500/30 bg-yellow-500/5',
-  warm: 'border-orange-500/30 bg-orange-500/5',
-}
-
-const moodLabels: Record<string, string> = {
-  friendly: '友善',
-  deep: '深度',
-  fun: '欢乐',
-  warm: '温暖',
-}
+import { useI18n } from '../i18n'
 
 type Tab = 'friends' | 'logs' | 'feed' | 'avatarChat' | 'report'
 
 export function SocialPage() {
   const { profile, friends, updateFriendPermission, setCurrentPage } = useStore()
+  const { t } = useI18n()
   const [tab, setTab] = useState<Tab>('friends')
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
+
+  const permissionLabels: Record<number, { label: string; desc: string; color: string }> = {
+    0: { label: t('social.permissionLevels.l0.label'), desc: t('social.permissionLevels.l0.desc'), color: 'text-red-400' },
+    1: { label: t('social.permissionLevels.l1.label'), desc: t('social.permissionLevels.l1.desc'), color: 'text-yellow-400' },
+    2: { label: t('social.permissionLevels.l2.label'), desc: t('social.permissionLevels.l2.desc'), color: 'text-green-400' },
+    3: { label: t('social.permissionLevels.l3.label'), desc: t('social.permissionLevels.l3.desc'), color: 'text-primary-400' },
+  }
+
+  const frequencyLabels: Record<string, { label: string; color: string }> = {
+    high: { label: t('social.frequency.high'), color: 'text-green-400' },
+    medium: { label: t('social.frequency.medium'), color: 'text-yellow-400' },
+    low: { label: t('social.frequency.low'), color: 'text-gray-400' },
+  }
+
+  const moodColors: Record<string, string> = {
+    friendly: 'border-green-500/30 bg-green-500/5',
+    deep: 'border-purple-500/30 bg-purple-500/5',
+    fun: 'border-yellow-500/30 bg-yellow-500/5',
+    warm: 'border-orange-500/30 bg-orange-500/5',
+  }
+
+  const moodLabels: Record<string, string> = {
+    friendly: t('social.mood.friendly'),
+    deep: t('social.mood.deep'),
+    fun: t('social.mood.fun'),
+    warm: t('social.mood.warm'),
+  }
 
   if (!profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20">
         <Users size={48} className="text-primary-400 mb-4" />
-        <h2 className="text-xl font-bold text-primary-100 mb-3">还没有创建分身</h2>
-        <p className="text-gray-400 mb-6">先创建你的数字分身</p>
+        <h2 className="text-xl font-bold text-primary-100 mb-3">{t('common.noAvatar')}</h2>
+        <p className="text-gray-400 mb-6">{t('common.noAvatarDesc')}</p>
         <button onClick={() => setCurrentPage('create')} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl cursor-pointer">
-          创建分身
+          {t('common.createAvatar')}
         </button>
       </div>
     )
@@ -66,6 +68,14 @@ export function SocialPage() {
     memory: Star,
   }
 
+  const tabItems = [
+    { id: 'friends' as Tab, label: t('social.tabs.friends'), icon: Users },
+    { id: 'feed' as Tab, label: t('social.tabs.feed'), icon: Activity },
+    { id: 'avatarChat' as Tab, label: t('social.tabs.avatarChat'), icon: MessageCircle },
+    { id: 'logs' as Tab, label: t('social.tabs.logs'), icon: MessageSquare },
+    { id: 'report' as Tab, label: t('social.tabs.report'), icon: BarChart3 },
+  ]
+
   return (
     <div className="min-h-screen pt-16 md:pt-14 pb-20 md:pb-8 px-4">
       <div className="max-w-3xl mx-auto">
@@ -73,29 +83,23 @@ export function SocialPage() {
         <div className="flex items-center gap-3 mb-6 mt-4">
           <NebulaAvatar size={40} animate={false} />
           <div>
-            <h1 className="text-xl font-bold text-primary-100">社交控制台</h1>
-            <p className="text-xs text-gray-400">今日已代回复 {weeklyReport.totalReplies} 条 · {friends.length} 位好友</p>
+            <h1 className="text-xl font-bold text-primary-100">{t('social.console')}</h1>
+            <p className="text-xs text-gray-400">{t('social.todayReplied').replace('{count}', String(weeklyReport.totalReplies))} · {friends.length} {t('social.friends')}</p>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 bg-surface-100/50 rounded-xl p-1 mb-6 overflow-x-auto">
-          {[
-            { id: 'friends' as Tab, label: '好友', icon: Users },
-            { id: 'feed' as Tab, label: '动态', icon: Activity },
-            { id: 'avatarChat' as Tab, label: '分身对话', icon: MessageCircle },
-            { id: 'logs' as Tab, label: '记录', icon: MessageSquare },
-            { id: 'report' as Tab, label: '周报', icon: BarChart3 },
-          ].map((t) => (
+          {tabItems.map((item) => (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={item.id}
+              onClick={() => setTab(item.id)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs sm:text-sm transition-all cursor-pointer whitespace-nowrap ${
-                tab === t.id ? 'bg-primary-600/30 text-primary-200' : 'text-gray-400 hover:text-primary-300'
+                tab === item.id ? 'bg-primary-600/30 text-primary-200' : 'text-gray-400 hover:text-primary-300'
               }`}
             >
-              <t.icon size={14} />
-              {t.label}
+              <item.icon size={14} />
+              {item.label}
             </button>
           ))}
         </div>
@@ -189,7 +193,7 @@ export function SocialPage() {
                             <div className="mt-4 pt-4 border-t border-primary-900/20">
                               <div className="text-xs text-gray-400 mb-3 flex items-center gap-1">
                                 <Shield size={12} />
-                                代回复权限设置
+                                {t('social.permissionSettings')}
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 {[0, 1, 2, 3].map((level) => (
@@ -212,7 +216,7 @@ export function SocialPage() {
                                 ))}
                               </div>
                               <div className="text-xs text-gray-500 mt-3">
-                                已代回复 {f.replyCount} 条消息
+                                {t('social.repliedCount').replace('{count}', String(f.replyCount))}
                               </div>
                             </div>
                           </motion.div>
@@ -263,7 +267,7 @@ export function SocialPage() {
           {tab === 'avatarChat' && (
             <motion.div key="avatarChat" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="mb-4">
-                <p className="text-xs text-gray-400">你的分身和好友的分身的精彩对话摘要</p>
+                <p className="text-xs text-gray-400">{t('social.avatarChatDesc')}</p>
               </div>
               <div className="space-y-4">
                 {avatarConversations.map((conv) => (
@@ -272,7 +276,7 @@ export function SocialPage() {
                       <div className="flex items-center gap-2">
                         <div className="flex -space-x-2">
                           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-[10px] font-bold border-2 border-surface-50 z-10">
-                            我
+                            {t('social.me')}
                           </div>
                           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-warm-400 to-warm-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-surface-50">
                             {conv.friend2[0]}
@@ -326,7 +330,7 @@ export function SocialPage() {
                     </div>
                     <p className="text-sm text-gray-300 mb-3">{log.summary}</p>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span>{log.messageCount} 条消息</span>
+                      <span>{log.messageCount} {t('common.messages')}</span>
                     </div>
                     {log.highlights.length > 0 && (
                       <div className="mt-3 space-y-1">
@@ -347,15 +351,15 @@ export function SocialPage() {
           {tab === 'report' && (
             <motion.div key="report" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="bg-surface-100/50 border border-primary-900/30 rounded-xl p-6">
-                <h3 className="text-lg font-bold text-primary-100 mb-1">社交周报</h3>
+                <h3 className="text-lg font-bold text-primary-100 mb-1">{t('social.weeklyReport')}</h3>
                 <p className="text-xs text-gray-500 mb-6">{weeklyReport.period}</p>
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3 mb-6">
                   {[
-                    { label: '总代回复', value: weeklyReport.totalReplies },
-                    { label: '自动回复', value: weeklyReport.autoReplies },
-                    { label: '平均信心', value: `${weeklyReport.avgConfidence}%` },
+                    { label: t('social.stats.totalReplies'), value: weeklyReport.totalReplies },
+                    { label: t('social.stats.autoReplies'), value: weeklyReport.autoReplies },
+                    { label: t('social.stats.avgConfidence'), value: `${weeklyReport.avgConfidence}%` },
                   ].map((s, i) => (
                     <div key={i} className="bg-surface-200/50 rounded-xl p-3 text-center">
                       <div className="text-xl font-bold text-primary-200">{s.value}</div>
@@ -366,7 +370,7 @@ export function SocialPage() {
 
                 {/* Top contacts chart */}
                 <div className="mb-6">
-                  <h4 className="text-sm text-primary-200 mb-3">互动最多的好友</h4>
+                  <h4 className="text-sm text-primary-200 mb-3">{t('social.topFriends')}</h4>
                   <ResponsiveContainer width="100%" height={150}>
                     <BarChart data={weeklyReport.topContacts} layout="vertical">
                       <XAxis type="number" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} />
@@ -379,7 +383,7 @@ export function SocialPage() {
 
                 {/* Similarity trend */}
                 <div className="mb-6">
-                  <h4 className="text-sm text-primary-200 mb-3">相似度趋势</h4>
+                  <h4 className="text-sm text-primary-200 mb-3">{t('social.similarityTrend')}</h4>
                   <ResponsiveContainer width="100%" height={120}>
                     <LineChart data={weeklyReport.similarityTrend}>
                       <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} />
@@ -392,11 +396,11 @@ export function SocialPage() {
 
                 {/* Top topics */}
                 <div>
-                  <h4 className="text-sm text-primary-200 mb-3">热门话题</h4>
+                  <h4 className="text-sm text-primary-200 mb-3">{t('social.hotTopics')}</h4>
                   <div className="flex flex-wrap gap-2">
-                    {weeklyReport.topTopics.map((t, i) => (
+                    {weeklyReport.topTopics.map((topic, i) => (
                       <span key={i} className="bg-primary-900/30 text-primary-300 px-3 py-1.5 rounded-full text-xs">
-                        {t}
+                        {topic}
                       </span>
                     ))}
                   </div>

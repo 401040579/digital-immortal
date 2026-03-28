@@ -3,30 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Info, TrendingUp, Lightbulb, Cloud, CloudOff } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { useStore } from '../store/useStore'
-import { generateEnhancedResponse, getQuickTopics, chatScenarios } from '../data/chatScenarios'
+import { generateEnhancedResponse, chatScenarios } from '../data/chatScenarios'
 import { NebulaAvatar } from '../components/NebulaAvatar'
 import { isBackendAvailable, avatarChat } from '../api/client'
-
-const similarityData = [
-  { day: '第1天', value: 35 },
-  { day: '第3天', value: 42 },
-  { day: '第5天', value: 48 },
-  { day: '第7天', value: 55 },
-  { day: '第10天', value: 62 },
-  { day: '第14天', value: 68 },
-  { day: '今天', value: 78 },
-]
-
-const categoryLabels: Record<string, string> = {
-  casual: '日常闲聊',
-  deep: '深度对话',
-  personality_test: '性格测试',
-  memory_recall: '记忆回顾',
-  philosophy: '哲学思考',
-}
+import { useI18n } from '../i18n'
 
 export function ChatPage() {
   const { profile, messages, addMessage, setCurrentPage } = useStore()
+  const { t } = useI18n()
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showChart, setShowChart] = useState(false)
@@ -44,17 +28,45 @@ export function ChatPage() {
     isBackendAvailable().then(setBackendOnline).catch(() => setBackendOnline(false))
   }, [])
 
+  const similarityData = [
+    { day: t('chat.similarityDays.d1'), value: 35 },
+    { day: t('chat.similarityDays.d3'), value: 42 },
+    { day: t('chat.similarityDays.d5'), value: 48 },
+    { day: t('chat.similarityDays.d7'), value: 55 },
+    { day: t('chat.similarityDays.d10'), value: 62 },
+    { day: t('chat.similarityDays.d14'), value: 68 },
+    { day: t('chat.similarityDays.today'), value: 78 },
+  ]
+
+  const categoryLabels: Record<string, string> = {
+    casual: t('chat.categoryLabels.casual'),
+    deep: t('chat.categoryLabels.deep'),
+    personality_test: t('chat.categoryLabels.personality_test'),
+    memory_recall: t('chat.categoryLabels.memory_recall'),
+    philosophy: t('chat.categoryLabels.philosophy'),
+  }
+
+  // Build quick topics from i18n
+  const quickTopics: { label: string; message: string }[] = []
+  for (let i = 0; i < 6; i++) {
+    const label = t(`chat.quickTopics.${i}.label`)
+    const message = t(`chat.quickTopics.${i}.message`)
+    if (label !== `chat.quickTopics.${i}.label`) {
+      quickTopics.push({ label, message })
+    }
+  }
+
   if (!profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20">
         <NebulaAvatar size={100} className="mb-6" />
-        <h2 className="text-xl font-bold text-primary-100 mb-3">还没有创建分身</h2>
-        <p className="text-gray-400 mb-6">先创建你的数字分身，才能和它对话</p>
+        <h2 className="text-xl font-bold text-primary-100 mb-3">{t('common.noAvatar')}</h2>
+        <p className="text-gray-400 mb-6">{t('common.noAvatarDesc')}</p>
         <button
           onClick={() => setCurrentPage('create')}
           className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl cursor-pointer"
         >
-          创建分身
+          {t('common.createAvatar')}
         </button>
       </div>
     )
@@ -131,12 +143,11 @@ export function ChatPage() {
   }
 
   function getConfidenceLabel(c: number) {
-    if (c >= 85) return '高信心'
-    if (c >= 70) return '中信心'
-    return '低信心'
+    if (c >= 85) return t('chat.confidenceHigh')
+    if (c >= 70) return t('chat.confidenceMedium')
+    return t('chat.confidenceLow')
   }
 
-  const quickTopics = getQuickTopics()
   const categories = Object.keys(categoryLabels)
   const filteredScenarios = selectedCategory
     ? chatScenarios.filter((s) => s.category === selectedCategory)
@@ -149,17 +160,17 @@ export function ChatPage() {
         <div className="flex items-center gap-3">
           <NebulaAvatar size={36} animate={false} />
           <div>
-            <div className="text-primary-100 font-medium text-sm">{profile.name}的分身</div>
+            <div className="text-primary-100 font-medium text-sm">{profile.name}{t('chat.avatarOf')}</div>
             <div className="text-xs text-green-400 flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-              在线 · 相似度 {profile.similarity ?? 78}%
+              {t('common.online')} · {t('common.similarity')} {profile.similarity ?? 78}%
               {backendOnline ? (
-                <span className="ml-1.5 flex items-center gap-0.5 text-[10px] text-sky-400" title="Claude AI 云端模式">
+                <span className="ml-1.5 flex items-center gap-0.5 text-[10px] text-sky-400" title="Claude AI">
                   <Cloud size={10} /> AI
                 </span>
               ) : (
-                <span className="ml-1.5 flex items-center gap-0.5 text-[10px] text-gray-500" title="本地模式">
-                  <CloudOff size={10} /> 本地
+                <span className="ml-1.5 flex items-center gap-0.5 text-[10px] text-gray-500" title={t('common.local')}>
+                  <CloudOff size={10} /> {t('common.local')}
                 </span>
               )}
             </div>
@@ -197,7 +208,7 @@ export function ChatPage() {
             <div className="px-4 py-3">
               <div className="text-sm text-primary-200 mb-2 flex items-center gap-2">
                 <TrendingUp size={14} />
-                相似度趋势
+                {t('chat.similarityTrend')}
               </div>
               <ResponsiveContainer width="100%" height={140}>
                 <LineChart data={similarityData}>
@@ -227,7 +238,7 @@ export function ChatPage() {
             <div className="px-4 py-3">
               <div className="text-sm text-primary-200 mb-3 flex items-center gap-2">
                 <Lightbulb size={14} />
-                话题灵感
+                {t('chat.topicInspiration')}
               </div>
 
               {/* Category tabs */}
@@ -265,13 +276,13 @@ export function ChatPage() {
               {/* Quick topics */}
               {!selectedCategory && (
                 <div className="flex flex-wrap gap-2">
-                  {quickTopics.map((t, i) => (
+                  {quickTopics.map((topic, i) => (
                     <button
                       key={i}
-                      onClick={() => handleSend(t.message)}
+                      onClick={() => handleSend(topic.message)}
                       className="px-3 py-1.5 rounded-full text-xs bg-surface-200/50 text-gray-300 hover:bg-primary-900/30 hover:text-primary-200 transition-colors cursor-pointer border border-primary-900/20"
                     >
-                      {t.label}
+                      {topic.label}
                     </button>
                   ))}
                 </div>
@@ -287,18 +298,18 @@ export function ChatPage() {
           <div className="text-center py-12">
             <NebulaAvatar size={80} className="mx-auto mb-4" />
             <p className="text-gray-400 text-sm mb-6">
-              嗨，{profile.name}！我是你的数字分身。
+              {t('chat.noMessages').replace('{name}', profile.name)}
               <br />
-              虽然我刚出生，但已经迫不及待想和你聊天了！
+              {t('chat.noMessages2')}
             </p>
             <div className="flex flex-wrap justify-center gap-2 max-w-sm mx-auto">
-              {quickTopics.slice(0, 4).map((t, i) => (
+              {quickTopics.slice(0, 4).map((topic, i) => (
                 <button
                   key={i}
-                  onClick={() => handleSend(t.message)}
+                  onClick={() => handleSend(topic.message)}
                   className="px-4 py-2 rounded-full text-xs bg-primary-600/20 text-primary-300 hover:bg-primary-600/30 transition-colors cursor-pointer border border-primary-500/30"
                 >
-                  {t.label}
+                  {topic.label}
                 </button>
               ))}
             </div>
@@ -316,7 +327,7 @@ export function ChatPage() {
               {msg.sender === 'avatar' && (
                 <div className="flex items-center gap-2 mb-1">
                   <NebulaAvatar size={20} animate={false} />
-                  <span className="text-xs text-gray-500">{profile.name}的分身</span>
+                  <span className="text-xs text-gray-500">{profile.name}{t('chat.avatarOf')}</span>
                 </div>
               )}
               <div
@@ -366,7 +377,7 @@ export function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="说点什么..."
+            placeholder={t('chat.inputPlaceholder')}
             className="flex-1 bg-surface-100 border border-primary-900/40 rounded-xl px-4 py-3 text-sm text-primary-100 placeholder-gray-500 focus:outline-none focus:border-primary-500/50"
           />
           <motion.button

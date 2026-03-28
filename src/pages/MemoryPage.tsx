@@ -4,6 +4,7 @@ import { Brain, X, Search, Filter, Clock, Tag } from 'lucide-react'
 import { memoryNodes } from '../data/mockData'
 import type { MemoryNode } from '../store/useStore'
 import { useStore } from '../store/useStore'
+import { useI18n } from '../i18n'
 
 interface SimNode extends MemoryNode {
   x: number
@@ -20,16 +21,9 @@ const typeColors: Record<string, string> = {
   preference: '#10b981',
 }
 
-const typeLabels: Record<string, string> = {
-  experience: '经历',
-  knowledge: '知识',
-  opinion: '观点',
-  relationship: '关系',
-  preference: '偏好',
-}
-
 export function MemoryPage() {
   const { profile, setCurrentPage } = useStore()
+  const { t } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [selectedNode, setSelectedNode] = useState<MemoryNode | null>(null)
@@ -39,6 +33,14 @@ export function MemoryPage() {
   const [nodes, setNodes] = useState<SimNode[]>([])
   const animRef = useRef<number>(0)
   const nodesRef = useRef<SimNode[]>([])
+
+  const typeLabels: Record<string, string> = {
+    experience: t('memory.typeLabels.experience'),
+    knowledge: t('memory.typeLabels.knowledge'),
+    opinion: t('memory.typeLabels.opinion'),
+    relationship: t('memory.typeLabels.relationship'),
+    preference: t('memory.typeLabels.preference'),
+  }
 
   // Filter nodes
   const filteredNodes = memoryNodes.filter((n) => {
@@ -51,7 +53,7 @@ export function MemoryPage() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       return n.label.toLowerCase().includes(q) || n.content.toLowerCase().includes(q) ||
-        (n.emotionTags && n.emotionTags.some(t => t.includes(q)))
+        (n.emotionTags && n.emotionTags.some(tag => tag.includes(q)))
     }
     return true
   })
@@ -250,10 +252,10 @@ export function MemoryPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20">
         <Brain size={48} className="text-primary-400 mb-4" />
-        <h2 className="text-xl font-bold text-primary-100 mb-3">还没有创建分身</h2>
-        <p className="text-gray-400 mb-6">先创建你的数字分身</p>
+        <h2 className="text-xl font-bold text-primary-100 mb-3">{t('common.noAvatar')}</h2>
+        <p className="text-gray-400 mb-6">{t('common.noAvatarDesc')}</p>
         <button onClick={() => setCurrentPage('create')} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl cursor-pointer">
-          创建分身
+          {t('common.createAvatar')}
         </button>
       </div>
     )
@@ -270,10 +272,10 @@ export function MemoryPage() {
           <div>
             <h1 className="text-xl font-bold text-primary-100 flex items-center gap-2">
               <Brain size={22} className="text-primary-400" />
-              记忆图谱
+              {t('memory.title')}
             </h1>
             <p className="text-xs text-gray-400 mt-1">
-              {memoryNodes.length} 条记忆 · {memoryNodes.filter(n => n.isCore).length} 条核心记忆 · 点击节点查看详情
+              {t('memory.memoryCount').replace('{count}', String(memoryNodes.length))} · {t('memory.coreCount').replace('{count}', String(memoryNodes.filter(n => n.isCore).length))} · {t('memory.clickToView')}
             </p>
           </div>
         </div>
@@ -285,7 +287,7 @@ export function MemoryPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索记忆（内容、标签、情感...）"
+            placeholder={t('memory.searchPlaceholder')}
             className="w-full bg-surface-100 border border-primary-900/40 rounded-xl pl-10 pr-4 py-2.5 text-sm text-primary-100 placeholder-gray-500 focus:outline-none focus:border-primary-500/50"
           />
         </div>
@@ -295,7 +297,7 @@ export function MemoryPage() {
           {/* Type filter */}
           <div className="flex items-center gap-1">
             <Filter size={12} className="text-gray-500" />
-            <span className="text-[10px] text-gray-500 mr-1">类型:</span>
+            <span className="text-[10px] text-gray-500 mr-1">{t('common.type')}:</span>
             {Object.entries(typeLabels).map(([key, label]) => (
               <button
                 key={key}
@@ -317,10 +319,10 @@ export function MemoryPage() {
           {/* Time filter */}
           <div className="flex items-center gap-1">
             <Clock size={12} className="text-gray-500" />
-            <span className="text-[10px] text-gray-500 mr-1">时间:</span>
+            <span className="text-[10px] text-gray-500 mr-1">{t('common.time')}:</span>
             {[
-              { key: 'core', label: '核心记忆' },
-              { key: 'recent', label: '近期记忆' },
+              { key: 'core', label: t('memory.timeFilters.core') },
+              { key: 'recent', label: t('memory.timeFilters.recent') },
             ].map((f) => (
               <button
                 key={f.key}
@@ -341,7 +343,7 @@ export function MemoryPage() {
               onClick={() => { setFilterType(null); setFilterTime(null); setSearchQuery('') }}
               className="text-[10px] text-gray-500 hover:text-primary-300 cursor-pointer ml-auto"
             >
-              清除筛选
+              {t('common.clearFilters')}
             </button>
           )}
         </div>
@@ -383,7 +385,7 @@ export function MemoryPage() {
                   <div className="w-4 h-4 rounded-full" style={{ background: typeColors[selectedNode.type] }} />
                   <h3 className="text-lg font-semibold text-primary-100">{selectedNode.label}</h3>
                   {selectedNode.isCore && (
-                    <span className="text-[10px] bg-warm-500/20 text-warm-300 px-2 py-0.5 rounded-full">核心记忆</span>
+                    <span className="text-[10px] bg-warm-500/20 text-warm-300 px-2 py-0.5 rounded-full">{t('memory.coreMemory')}</span>
                   )}
                 </div>
                 <button onClick={() => setSelectedNode(null)} className="text-gray-500 hover:text-gray-300 cursor-pointer">
@@ -395,17 +397,17 @@ export function MemoryPage() {
 
               {/* Meta info */}
               <div className="flex flex-wrap gap-4 text-xs text-gray-500 mb-4">
-                <span>类型: <span className="text-primary-300">{typeLabels[selectedNode.type]}</span></span>
-                <span>重要性: <span className="text-primary-300">{Math.round(selectedNode.importance * 100)}%</span></span>
+                <span>{t('common.type')}: <span className="text-primary-300">{typeLabels[selectedNode.type]}</span></span>
+                <span>{t('common.importance')}: <span className="text-primary-300">{Math.round(selectedNode.importance * 100)}%</span></span>
                 <span>
-                  情感:
+                  {t('common.emotion')}:
                   <span className={selectedNode.emotionalValence > 0 ? 'text-warm-400' : selectedNode.emotionalValence < 0 ? 'text-blue-400' : 'text-gray-400'}>
-                    {' '}{selectedNode.emotionalValence > 0 ? '正面' : selectedNode.emotionalValence < 0 ? '负面' : '中性'}
+                    {' '}{selectedNode.emotionalValence > 0 ? t('common.positive') : selectedNode.emotionalValence < 0 ? t('common.negative') : t('common.neutral')}
                     {' '}({selectedNode.emotionalValence > 0 ? '+' : ''}{selectedNode.emotionalValence.toFixed(1)})
                   </span>
                 </span>
                 {selectedNode.timestamp && (
-                  <span>时间: <span className="text-primary-300">{selectedNode.timestamp}</span></span>
+                  <span>{t('common.time')}: <span className="text-primary-300">{selectedNode.timestamp}</span></span>
                 )}
               </div>
 
@@ -414,7 +416,7 @@ export function MemoryPage() {
                 <div className="mb-4">
                   <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
                     <Tag size={12} />
-                    情感标签
+                    {t('memory.emotionTags')}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedNode.emotionTags.map((tag, i) => (
@@ -429,7 +431,7 @@ export function MemoryPage() {
               {/* Related dialogs */}
               {selectedNode.relatedDialogs && selectedNode.relatedDialogs.length > 0 && (
                 <div className="mb-4">
-                  <div className="text-xs text-gray-500 mb-2">关联对话</div>
+                  <div className="text-xs text-gray-500 mb-2">{t('memory.relatedDialogs')}</div>
                   <div className="space-y-1.5">
                     {selectedNode.relatedDialogs.map((dialog, i) => (
                       <div key={i} className="text-xs text-gray-300 bg-surface-200/30 px-3 py-2 rounded-lg border-l-2 border-primary-500/30">
@@ -443,7 +445,7 @@ export function MemoryPage() {
               {/* Connected nodes */}
               {connectedNodes.length > 0 && (
                 <div>
-                  <div className="text-xs text-gray-500 mb-2">关联记忆 ({connectedNodes.length})</div>
+                  <div className="text-xs text-gray-500 mb-2">{t('memory.connectedMemories')} ({connectedNodes.length})</div>
                   <div className="flex flex-wrap gap-2">
                     {connectedNodes.map((n) => (
                       <button

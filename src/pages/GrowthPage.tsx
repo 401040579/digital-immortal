@@ -5,6 +5,7 @@ import { useStore } from '../store/useStore'
 import { growthMilestones, growthStats, type GrowthMilestone } from '../data/growthData'
 import { NebulaAvatar } from '../components/NebulaAvatar'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
+import { useI18n } from '../i18n'
 
 const iconMap: Record<string, typeof Sparkles> = {
   sparkles: Sparkles,
@@ -50,16 +51,17 @@ const similarityGrowthData = [
 
 export function GrowthPage() {
   const { profile, setCurrentPage } = useStore()
+  const { t } = useI18n()
   const [selectedMilestone, setSelectedMilestone] = useState<GrowthMilestone | null>(null)
 
   if (!profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20">
         <TrendingUp size={48} className="text-primary-400 mb-4" />
-        <h2 className="text-xl font-bold text-primary-100 mb-3">还没有创建分身</h2>
-        <p className="text-gray-400 mb-6">先创建你的数字分身</p>
+        <h2 className="text-xl font-bold text-primary-100 mb-3">{t('common.noAvatar')}</h2>
+        <p className="text-gray-400 mb-6">{t('common.noAvatarDesc')}</p>
         <button onClick={() => setCurrentPage('create')} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl cursor-pointer">
-          创建分身
+          {t('common.createAvatar')}
         </button>
       </div>
     )
@@ -74,6 +76,16 @@ export function GrowthPage() {
 
   const dates = Object.keys(groupedMilestones).sort()
 
+  // Build future items from i18n
+  const futureItems: { label: string; sub: string }[] = []
+  for (let i = 0; i < 3; i++) {
+    const label = t(`growth.futureItems.${i}.label`)
+    const sub = t(`growth.futureItems.${i}.sub`)
+    if (label !== `growth.futureItems.${i}.label`) {
+      futureItems.push({ label, sub })
+    }
+  }
+
   return (
     <div className="min-h-screen pt-16 md:pt-14 pb-20 md:pb-8 px-4">
       <div className="max-w-3xl mx-auto">
@@ -83,19 +95,19 @@ export function GrowthPage() {
           <div>
             <h1 className="text-xl font-bold text-primary-100 flex items-center gap-2">
               <Calendar size={20} className="text-primary-400" />
-              分身成长日记
+              {t('growth.title')}
             </h1>
-            <p className="text-xs text-gray-400">记录 {profile.name} 分身的成长历程</p>
+            <p className="text-xs text-gray-400">{t('growth.recording').replace('{name}', profile.name)}</p>
           </div>
         </div>
 
         {/* Stats overview */}
         <div className="grid grid-cols-4 gap-2 mb-6">
           {[
-            { label: '活跃天数', value: growthStats.daysActive, icon: Calendar },
-            { label: '总对话数', value: growthStats.totalChats, icon: MessageCircle },
-            { label: '记忆数', value: growthStats.totalMemories, icon: Brain },
-            { label: '代回复', value: growthStats.totalReplies, icon: Users },
+            { label: t('growth.stats.daysActive'), value: growthStats.daysActive, icon: Calendar },
+            { label: t('growth.stats.totalChats'), value: growthStats.totalChats, icon: MessageCircle },
+            { label: t('growth.stats.memories'), value: growthStats.totalMemories, icon: Brain },
+            { label: t('growth.stats.replies'), value: growthStats.totalReplies, icon: Users },
           ].map((stat, i) => (
             <motion.div
               key={i}
@@ -116,7 +128,7 @@ export function GrowthPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <BarChart3 size={16} className="text-primary-400" />
-              <span className="text-sm text-primary-200 font-medium">相似度成长曲线</span>
+              <span className="text-sm text-primary-200 font-medium">{t('growth.similarityCurve')}</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="text-2xl font-bold text-primary-200">{growthStats.currentSimilarity}%</span>
@@ -141,9 +153,9 @@ export function GrowthPage() {
             </LineChart>
           </ResponsiveContainer>
           <div className="flex justify-between text-[10px] text-gray-500 mt-1">
-            <span>创建日</span>
-            <span>+{growthStats.currentSimilarity - 35}% 增长</span>
-            <span>今天</span>
+            <span>{t('common.creationDay')}</span>
+            <span>+{growthStats.currentSimilarity - 35}% {t('growth.growth')}</span>
+            <span>{t('common.today')}</span>
           </div>
         </div>
 
@@ -163,7 +175,7 @@ export function GrowthPage() {
                 </div>
                 <div>
                   <span className="text-sm text-primary-200 font-medium">
-                    {dateIdx === 0 ? '分身诞生日' : dateIdx === dates.length - 1 ? '今天' : `第${dateIdx + 1}天`}
+                    {dateIdx === 0 ? t('growth.birthDay') : dateIdx === dates.length - 1 ? t('common.today') : t('growth.dayN').replace('{n}', String(dateIdx + 1))}
                   </span>
                 </div>
               </div>
@@ -211,7 +223,7 @@ export function GrowthPage() {
                           className="mt-3 pt-3 border-t border-primary-900/20"
                         >
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-gray-500">相似度进度</span>
+                            <span className="text-[10px] text-gray-500">{t('common.similarity')}</span>
                             <div className="flex-1 h-2 bg-surface-200/50 rounded-full overflow-hidden">
                               <motion.div
                                 className="h-full bg-gradient-to-r from-primary-600 to-warm-400 rounded-full"
@@ -237,14 +249,10 @@ export function GrowthPage() {
               <div className="w-[45px] h-[45px] rounded-full bg-surface-50 border-2 border-dashed border-primary-900/30 flex items-center justify-center z-10 relative">
                 <span className="text-lg text-gray-600">?</span>
               </div>
-              <span className="text-sm text-gray-500">未来的里程碑...</span>
+              <span className="text-sm text-gray-500">{t('growth.futureMilestones')}</span>
             </div>
             <div className="ml-[52px] space-y-2">
-              {[
-                { label: '相似度突破90%', sub: '达到"数字双胞胎"级别' },
-                { label: '首次通过图灵测试', sub: '朋友无法区分你和分身' },
-                { label: '遗产模式启动', sub: '你的智慧将跨越时间' },
-              ].map((future, i) => (
+              {futureItems.map((future, i) => (
                 <div key={i} className="border border-dashed border-primary-900/20 rounded-xl p-3 bg-surface-100/20">
                   <div className="text-xs text-gray-500">{future.label}</div>
                   <div className="text-[10px] text-gray-600">{future.sub}</div>

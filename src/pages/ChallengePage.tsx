@@ -4,11 +4,13 @@ import { Gamepad2, CheckCircle2, XCircle, ArrowRight, RotateCcw, Trophy } from '
 import { useStore } from '../store/useStore'
 import { challengeQuestions, type ChallengeQuestion } from '../data/challengeData'
 import { NebulaAvatar } from '../components/NebulaAvatar'
+import { useI18n } from '../i18n'
 
 type GameState = 'intro' | 'playing' | 'result'
 
 export function ChallengePage() {
   const { profile, setCurrentPage } = useStore()
+  const { t } = useI18n()
   const [gameState, setGameState] = useState<GameState>('intro')
   const [currentQ, setCurrentQ] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<'A' | 'B' | null>(null)
@@ -25,10 +27,10 @@ export function ChallengePage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20">
         <Gamepad2 size={48} className="text-primary-400 mb-4" />
-        <h2 className="text-xl font-bold text-primary-100 mb-3">还没有创建分身</h2>
-        <p className="text-gray-400 mb-6">先创建你的数字分身</p>
+        <h2 className="text-xl font-bold text-primary-100 mb-3">{t('common.noAvatar')}</h2>
+        <p className="text-gray-400 mb-6">{t('common.noAvatarDesc')}</p>
         <button onClick={() => setCurrentPage('create')} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl cursor-pointer">
-          创建分身
+          {t('common.createAvatar')}
         </button>
       </div>
     )
@@ -70,17 +72,17 @@ export function ChallengePage() {
   }
 
   function getResultTitle() {
-    if (accuracy >= 80) return '默契十足！'
-    if (accuracy >= 60) return '还不错！'
-    if (accuracy >= 40) return '继续了解中...'
-    return '还需多多交流~'
+    if (accuracy >= 80) return t('challenge.resultTitles.great')
+    if (accuracy >= 60) return t('challenge.resultTitles.good')
+    if (accuracy >= 40) return t('challenge.resultTitles.ok')
+    return t('challenge.resultTitles.low')
   }
 
   function getResultDesc() {
-    if (accuracy >= 80) return '你对分身的了解非常深入，你们之间的默契度很高！'
-    if (accuracy >= 60) return '你已经比较了解分身了，再多聊聊会更默契！'
-    if (accuracy >= 40) return '有些了解但还有提升空间，多和分身对话吧！'
-    return '看来你还需要和分身多多交流，它在等你！'
+    if (accuracy >= 80) return t('challenge.resultDescs.great')
+    if (accuracy >= 60) return t('challenge.resultDescs.good')
+    if (accuracy >= 40) return t('challenge.resultDescs.ok')
+    return t('challenge.resultDescs.low')
   }
 
   return (
@@ -103,25 +105,25 @@ export function ChallengePage() {
                 <Gamepad2 size={64} className="text-primary-400 mx-auto mb-6" />
               </motion.div>
 
-              <h1 className="text-2xl font-bold text-primary-100 mb-3">相似度挑战</h1>
+              <h1 className="text-2xl font-bold text-primary-100 mb-3">{t('challenge.title')}</h1>
               <p className="text-gray-400 mb-2 max-w-sm mx-auto leading-relaxed">
-                AI会出题，给你两个回复选项。
+                {t('challenge.intro')}
                 <br />
-                猜猜看哪个是你的分身说的！
+                {t('challenge.intro2')}
               </p>
-              <p className="text-xs text-gray-500 mb-8">共5道题，看看你有多了解自己的数字分身</p>
+              <p className="text-xs text-gray-500 mb-8">{t('challenge.intro3')}</p>
 
               <div className="flex items-center justify-center gap-4 mb-8">
                 <div className="flex -space-x-3">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold border-3 border-surface-50 z-10">
-                    你
+                    {t('challenge.you')}
                   </div>
                   <div className="w-12 h-12 rounded-full overflow-hidden border-3 border-surface-50">
                     <NebulaAvatar size={48} animate={false} />
                   </div>
                 </div>
                 <span className="text-sm text-gray-400">VS</span>
-                <div className="text-sm text-primary-300">谁说的？</div>
+                <div className="text-sm text-primary-300">{t('challenge.whoSaid')}</div>
               </div>
 
               <motion.button
@@ -130,7 +132,7 @@ export function ChallengePage() {
                 onClick={() => setGameState('playing')}
                 className="bg-gradient-to-r from-primary-600 to-warm-500 text-white px-8 py-4 rounded-2xl text-lg font-medium flex items-center gap-2 mx-auto cursor-pointer"
               >
-                开始挑战
+                {t('challenge.startChallenge')}
                 <ArrowRight size={20} />
               </motion.button>
             </motion.div>
@@ -159,12 +161,12 @@ export function ChallengePage() {
 
               {/* Scenario */}
               <div className="bg-surface-100/50 border border-primary-900/30 rounded-2xl p-5 mb-6">
-                <div className="text-xs text-gray-500 mb-2">场景</div>
+                <div className="text-xs text-gray-500 mb-2">{t('challenge.scenario')}</div>
                 <p className="text-primary-100 font-medium">{question.scenario}</p>
               </div>
 
               <div className="text-sm text-gray-400 mb-4 text-center">
-                下面哪个是你的分身会说的？
+                {t('challenge.whichIsAvatar')}
               </div>
 
               {/* Options */}
@@ -234,12 +236,12 @@ export function ChallengePage() {
                         {selectedAnswer === question.correctAnswer ? (
                           <>
                             <CheckCircle2 size={16} className="text-green-400" />
-                            <span className="text-sm font-medium text-green-400">回答正确！</span>
+                            <span className="text-sm font-medium text-green-400">{t('challenge.correct')}</span>
                           </>
                         ) : (
                           <>
                             <XCircle size={16} className="text-red-400" />
-                            <span className="text-sm font-medium text-red-400">答错了~</span>
+                            <span className="text-sm font-medium text-red-400">{t('challenge.wrong')}</span>
                           </>
                         )}
                       </div>
@@ -262,7 +264,7 @@ export function ChallengePage() {
                     onClick={handleNext}
                     className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 mx-auto cursor-pointer"
                   >
-                    {currentQ < totalQuestions - 1 ? '下一题' : '查看结果'}
+                    {currentQ < totalQuestions - 1 ? t('common.nextQuestion') : t('challenge.viewResults')}
                     <ArrowRight size={18} />
                   </motion.button>
                 </motion.div>
@@ -317,7 +319,7 @@ export function ChallengePage() {
                   >
                     {correctCount}/{totalQuestions}
                   </motion.span>
-                  <span className="text-xs text-gray-500">正确率 {accuracy}%</span>
+                  <span className="text-xs text-gray-500">{t('challenge.accuracy')} {accuracy}%</span>
                 </div>
               </div>
 
@@ -346,13 +348,13 @@ export function ChallengePage() {
                   className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 cursor-pointer"
                 >
                   <RotateCcw size={18} />
-                  再来一局
+                  {t('challenge.playAgain')}
                 </motion.button>
                 <button
                   onClick={() => setCurrentPage('chat')}
                   className="bg-surface-100 hover:bg-surface-200 text-primary-300 px-6 py-3 rounded-xl font-medium cursor-pointer"
                 >
-                  去聊天
+                  {t('challenge.goChat')}
                 </button>
               </div>
             </motion.div>

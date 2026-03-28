@@ -3,20 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Clock, Plus, X, Calendar, User, FileText, Trash2, Mail, MailOpen, Mic, Image, Video, Send } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { capsuleTemplates, receivedCapsules, type ReceivedCapsule } from '../data/mockData'
+import { useI18n } from '../i18n'
 
 type CapsuleType = 'letter' | 'voice' | 'photo' | 'video'
-
-const capsuleTypeConfig: Record<CapsuleType, { icon: typeof FileText; label: string; color: string }> = {
-  letter: { icon: FileText, label: '文字信', color: 'text-primary-400' },
-  voice: { icon: Mic, label: '语音', color: 'text-green-400' },
-  photo: { icon: Image, label: '照片', color: 'text-blue-400' },
-  video: { icon: Video, label: '视频', color: 'text-pink-400' },
-}
 
 type Tab = 'sent' | 'received'
 
 export function CapsulePage() {
   const { profile, capsules, addCapsule, removeCapsule, setCurrentPage } = useStore()
+  const { t } = useI18n()
   const [showForm, setShowForm] = useState(false)
   const [recipient, setRecipient] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
@@ -27,14 +22,21 @@ export function CapsulePage() {
   const [isOpening, setIsOpening] = useState(false)
   const [localReceived, setLocalReceived] = useState(receivedCapsules)
 
+  const capsuleTypeConfig: Record<CapsuleType, { icon: typeof FileText; label: string; color: string }> = {
+    letter: { icon: FileText, label: t('capsule.types.letter'), color: 'text-primary-400' },
+    voice: { icon: Mic, label: t('capsule.types.voice'), color: 'text-green-400' },
+    photo: { icon: Image, label: t('capsule.types.photo'), color: 'text-blue-400' },
+    video: { icon: Video, label: t('capsule.types.video'), color: 'text-pink-400' },
+  }
+
   if (!profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20">
         <Clock size={48} className="text-primary-400 mb-4" />
-        <h2 className="text-xl font-bold text-primary-100 mb-3">还没有创建分身</h2>
-        <p className="text-gray-400 mb-6">先创建你的数字分身</p>
+        <h2 className="text-xl font-bold text-primary-100 mb-3">{t('common.noAvatar')}</h2>
+        <p className="text-gray-400 mb-6">{t('common.noAvatarDesc')}</p>
         <button onClick={() => setCurrentPage('create')} className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl cursor-pointer">
-          创建分身
+          {t('common.createAvatar')}
         </button>
       </div>
     )
@@ -84,9 +86,9 @@ export function CapsulePage() {
 
   // Combine user-created capsules with preset templates
   const allSentCapsules = [
-    ...capsuleTemplates.map((t) => ({
-      ...t,
-      type: t.type as CapsuleType,
+    ...capsuleTemplates.map((tmpl) => ({
+      ...tmpl,
+      type: tmpl.type as CapsuleType,
     })),
     ...capsules.map((c) => ({
       ...c,
@@ -103,10 +105,10 @@ export function CapsulePage() {
           <div>
             <h1 className="text-xl font-bold text-primary-100 flex items-center gap-2">
               <Clock size={22} className="text-primary-400" />
-              时间胶囊
+              {t('capsule.title')}
             </h1>
             <p className="text-xs text-gray-400 mt-1">
-              写给未来的信，在指定日期送达 · {allSentCapsules.length} 个待送 · {localReceived.length} 个已收
+              {t('capsule.desc')} · {allSentCapsules.length} {t('capsule.pending')} · {localReceived.length} {t('capsule.received')}
             </p>
           </div>
           <motion.button
@@ -116,25 +118,25 @@ export function CapsulePage() {
             className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-xl text-sm flex items-center gap-2 cursor-pointer"
           >
             {showForm ? <X size={16} /> : <Plus size={16} />}
-            {showForm ? '取消' : '创建'}
+            {showForm ? t('common.cancel') : t('common.create')}
           </motion.button>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 bg-surface-100/50 rounded-xl p-1 mb-6">
           {[
-            { id: 'sent' as Tab, label: '已发送', icon: Send, count: allSentCapsules.length },
-            { id: 'received' as Tab, label: '已收到', icon: MailOpen, count: localReceived.length },
-          ].map((t) => (
+            { id: 'sent' as Tab, label: t('capsule.tabs.sent'), icon: Send, count: allSentCapsules.length },
+            { id: 'received' as Tab, label: t('capsule.tabs.received'), icon: MailOpen, count: localReceived.length },
+          ].map((item) => (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={item.id}
+              onClick={() => setTab(item.id)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm transition-all cursor-pointer ${
-                tab === t.id ? 'bg-primary-600/30 text-primary-200' : 'text-gray-400 hover:text-primary-300'
+                tab === item.id ? 'bg-primary-600/30 text-primary-200' : 'text-gray-400 hover:text-primary-300'
               }`}
             >
-              <t.icon size={16} />
-              {t.label} ({t.count})
+              <item.icon size={16} />
+              {item.label} ({item.count})
             </button>
           ))}
         </div>
@@ -149,12 +151,12 @@ export function CapsulePage() {
               className="overflow-hidden mb-6"
             >
               <div className="bg-surface-100/50 border border-primary-900/30 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-primary-100 mb-4">创建新时间胶囊</h3>
+                <h3 className="text-lg font-semibold text-primary-100 mb-4">{t('capsule.createNew')}</h3>
 
                 <div className="space-y-4">
                   {/* Capsule type selector */}
                   <div>
-                    <label className="text-sm text-gray-400 mb-2 block">胶囊类型</label>
+                    <label className="text-sm text-gray-400 mb-2 block">{t('capsule.capsuleType')}</label>
                     <div className="grid grid-cols-4 gap-2">
                       {(Object.entries(capsuleTypeConfig) as [CapsuleType, typeof capsuleTypeConfig.letter][]).map(([type, config]) => (
                         <button
@@ -176,13 +178,13 @@ export function CapsulePage() {
                   <div>
                     <label className="flex items-center gap-2 text-sm text-gray-400 mb-2">
                       <User size={14} />
-                      收件人
+                      {t('capsule.recipient')}
                     </label>
                     <input
                       type="text"
                       value={recipient}
                       onChange={(e) => setRecipient(e.target.value)}
-                      placeholder={'比如"女儿小雨"、"未来的自己"...'}
+                      placeholder={t('capsule.recipientPlaceholder')}
                       className="w-full bg-surface-50 border border-primary-900/40 rounded-xl px-4 py-3 text-sm text-primary-100 placeholder-gray-500 focus:outline-none focus:border-primary-500/50"
                     />
                   </div>
@@ -190,7 +192,7 @@ export function CapsulePage() {
                   <div>
                     <label className="flex items-center gap-2 text-sm text-gray-400 mb-2">
                       <Calendar size={14} />
-                      送达日期
+                      {t('capsule.deliveryDate')}
                     </label>
                     <input
                       type="date"
@@ -204,17 +206,12 @@ export function CapsulePage() {
                   <div>
                     <label className="flex items-center gap-2 text-sm text-gray-400 mb-2">
                       <FileText size={14} />
-                      内容
+                      {t('capsule.content')}
                     </label>
                     <textarea
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      placeholder={
-                        capsuleType === 'letter' ? '写给未来的话...' :
-                        capsuleType === 'voice' ? '描述语音内容（模拟）...' :
-                        capsuleType === 'photo' ? '描述照片内容和附言...' :
-                        '描述视频内容和附言...'
-                      }
+                      placeholder={t(`capsule.contentPlaceholders.${capsuleType}`)}
                       rows={5}
                       className="w-full bg-surface-50 border border-primary-900/40 rounded-xl px-4 py-3 text-sm text-primary-100 placeholder-gray-500 focus:outline-none focus:border-primary-500/50 resize-none"
                     />
@@ -227,7 +224,7 @@ export function CapsulePage() {
                     disabled={!recipient.trim() || !deliveryDate || !content.trim()}
                     className="w-full bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 disabled:opacity-40 text-white py-3 rounded-xl font-medium cursor-pointer disabled:cursor-not-allowed"
                   >
-                    封存胶囊
+                    {t('capsule.sealCapsule')}
                   </motion.button>
                 </div>
               </div>
@@ -241,8 +238,8 @@ export function CapsulePage() {
             {allSentCapsules.length === 0 && (
               <div className="text-center py-16">
                 <Clock size={48} className="text-primary-900/50 mx-auto mb-4" />
-                <p className="text-gray-500">还没有时间胶囊</p>
-                <p className="text-xs text-gray-600 mt-1">点击"创建"写一封给未来的信</p>
+                <p className="text-gray-500">{t('capsule.noCapsules')}</p>
+                <p className="text-xs text-gray-600 mt-1">{t('capsule.noCapsulesTip')}</p>
               </div>
             )}
 
@@ -271,7 +268,7 @@ export function CapsulePage() {
                       </div>
                       <div>
                         <div className="text-primary-100 font-medium text-sm">
-                          致 {capsule.recipient}
+                          {t('capsule.to')} {capsule.recipient}
                         </div>
                         <div className="text-xs text-gray-500 flex items-center gap-2">
                           <span className="flex items-center gap-1">
@@ -303,7 +300,7 @@ export function CapsulePage() {
                         <div className="text-3xl font-bold text-primary-200 mb-1">
                           {daysLeft}
                         </div>
-                        <div className="text-xs text-gray-400">天后送达</div>
+                        <div className="text-xs text-gray-400">{t('capsule.daysLeft')}</div>
                       </div>
                       <div className="mt-3 h-1.5 bg-surface-300/50 rounded-full overflow-hidden">
                         <motion.div
@@ -316,12 +313,12 @@ export function CapsulePage() {
                     </div>
                   ) : (
                     <div className="bg-warm-500/10 border border-warm-500/20 rounded-xl px-4 py-3 text-center">
-                      <span className="text-warm-400 text-sm font-medium">已送达</span>
+                      <span className="text-warm-400 text-sm font-medium">{t('capsule.delivered')}</span>
                     </div>
                   )}
 
                   <div className="text-[10px] text-gray-600 mt-3">
-                    创建于 {capsule.createdAt}
+                    {t('capsule.createdAt')} {capsule.createdAt}
                   </div>
                 </motion.div>
               )
@@ -335,7 +332,7 @@ export function CapsulePage() {
             {localReceived.length === 0 && (
               <div className="text-center py-16">
                 <Mail size={48} className="text-primary-900/50 mx-auto mb-4" />
-                <p className="text-gray-500">还没有收到时间胶囊</p>
+                <p className="text-gray-500">{t('capsule.noReceived')}</p>
               </div>
             )}
 
@@ -367,9 +364,9 @@ export function CapsulePage() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className="text-primary-100 font-medium text-sm">来自 {capsule.from}</div>
+                      <div className="text-primary-100 font-medium text-sm">{t('capsule.from')} {capsule.from}</div>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>到达于 {capsule.receivedDate}</span>
+                        <span>{t('capsule.arrivedAt')} {capsule.receivedDate}</span>
                         <span className={typeConf.color}>{capsule.typeLabel}</span>
                       </div>
                     </div>
@@ -379,7 +376,7 @@ export function CapsulePage() {
                         transition={{ duration: 2, repeat: Infinity }}
                         className="bg-warm-500 text-white text-[10px] px-2 py-1 rounded-full font-semibold"
                       >
-                        新!
+                        {t('common.new')}
                       </motion.div>
                     )}
                     {capsule.isOpened && (
@@ -431,8 +428,8 @@ export function CapsulePage() {
                       animate={{ opacity: [0, 1, 0, 1] }}
                       transition={{ duration: 2 }}
                     >
-                      <p className="text-primary-200 text-lg font-medium mb-2">正在开启时间胶囊...</p>
-                      <p className="text-gray-400 text-sm">来自 {openedCapsule.from} 的时光寄语</p>
+                      <p className="text-primary-200 text-lg font-medium mb-2">{t('capsule.openingCapsule')}</p>
+                      <p className="text-gray-400 text-sm">{t('capsule.openingFrom').replace('{name}', openedCapsule.from)}</p>
                     </motion.div>
 
                     {/* Sparkle particles */}
@@ -465,7 +462,7 @@ export function CapsulePage() {
                           <MailOpen size={20} className="text-primary-400" />
                         </div>
                         <div>
-                          <div className="text-primary-100 font-medium">来自 {openedCapsule.from}</div>
+                          <div className="text-primary-100 font-medium">{t('capsule.from')} {openedCapsule.from}</div>
                           <div className="text-xs text-gray-500">
                             {openedCapsule.receivedDate} · {capsuleTypeConfig[openedCapsule.type].label}
                           </div>
@@ -494,7 +491,7 @@ export function CapsulePage() {
                                 transition={{ duration: 3, repeat: Infinity }}
                               />
                             </div>
-                            <div className="text-[10px] text-gray-500 mt-1">0:32（模拟播放）</div>
+                            <div className="text-[10px] text-gray-500 mt-1">{t('capsule.simPlayback')}</div>
                           </div>
                         </div>
                       </div>
@@ -505,7 +502,7 @@ export function CapsulePage() {
                         <div className="w-full h-40 bg-gradient-to-br from-blue-900/30 to-purple-900/30 rounded-lg flex items-center justify-center mb-2">
                           <Image size={32} className="text-blue-400/50" />
                         </div>
-                        <div className="text-[10px] text-gray-500">照片附件（模拟展示）</div>
+                        <div className="text-[10px] text-gray-500">{t('capsule.photoAttachment')}</div>
                       </div>
                     )}
 
@@ -516,7 +513,7 @@ export function CapsulePage() {
                             <Video size={20} className="text-white/80" />
                           </div>
                         </div>
-                        <div className="text-[10px] text-gray-500">视频附件（模拟展示）</div>
+                        <div className="text-[10px] text-gray-500">{t('capsule.videoAttachment')}</div>
                       </div>
                     )}
 
@@ -527,7 +524,7 @@ export function CapsulePage() {
                     </div>
 
                     <div className="text-center text-xs text-gray-500">
-                      这是一封跨越时间的信，承载着真挚的情感
+                      {t('capsule.capsuleFooter')}
                     </div>
                   </>
                 )}
